@@ -1,0 +1,111 @@
+{
+ "name": "g7-bullseye",
+ "notes": "Promo 12.500-15.000: the car drops out of the sunset at the end of the Mass Driver flight and slams onto the bullseye on promo 12.917 (one beat before the final hit), slow motion through the impact, an auto-zooming telephoto holds it big, then it slides to a stop broadside to the camera; the title card hits on 13.333.",
+ "size": [
+  1920,
+  1080
+ ],
+ "fps": 30,
+ "duration": 2.5,
+ "query": "tod=sunset",
+ "blur": {
+  "samples": 3,
+  "shutter": 0.35
+ },
+ "shadows": "frame",
+ "take": {
+  "start": "massdriver",
+  "input": [
+   [
+    0,
+    "KeyW"
+   ],
+   [
+    4.167,
+    ""
+   ],
+   [
+    13.2,
+    "KeyS+KeyQ+KeyA"
+   ],
+   [
+    14.4,
+    ""
+   ]
+  ]
+ },
+ "in": "land-0.417",
+ "hide": [
+  "rings",
+  "wires"
+ ],
+ "time": [
+  [
+   0,
+   1
+  ],
+  [
+   0.417,
+   1
+  ],
+  [
+   0.5,
+   0.4,
+   "out"
+  ],
+  [
+   0.833,
+   0.4
+  ],
+  [
+   1.1,
+   1,
+   "inOut"
+  ]
+ ],
+ "camera": {
+  "rig": "telephoto",
+  "pos": [
+   [
+    0,
+    [
+     762,
+     1.0,
+     -292
+    ]
+   ],
+   [
+    2.5,
+    [
+     758,
+     1.2,
+     -293
+    ]
+   ]
+  ],
+  "lookOffset": [
+   0,
+   0.8,
+   0
+  ],
+  "lookFollow": 0.05,
+  "frame": [
+   [
+    0,
+    16
+   ],
+   [
+    0.417,
+    9
+   ],
+   [
+    1.4,
+    6.5
+   ],
+   [
+    2.5,
+    5.8
+   ]
+  ]
+ }
+}

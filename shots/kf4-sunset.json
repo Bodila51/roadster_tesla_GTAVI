@@ -1,0 +1,30 @@
+{
+  "name": "kf4",
+  "size": [
+    1920,
+    1080
+  ],
+  "fps": 30,
+  "duration": 7,
+  "query": "tod=sunset",
+  "take": "takes/kf4-flyover.json",
+  "in": 0,
+  "hide": [
+    "rings",
+    "wires"
+  ],
+  "camera": {
+    "rig": "fixed",
+    "pos": [
+      176,
+      1.1,
+      -46
+    ],
+    "look": [
+      150,
+      1.6,
+      -40
+    ],
+    "lens": 32
+  }
+}

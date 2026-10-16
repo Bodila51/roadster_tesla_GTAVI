@@ -1,0 +1,5 @@
+{ "name": "g4-md", "notes": "Promo 10.000-10.833 (the drop): the Mass Driver fires the car off the end of its rail over a low camera, up into the sunset clouds.",
+  "size": [1920, 1080], "fps": 30, "duration": 0.833, "query": "tod=sunset", "blur": { "samples": 3, "shutter": 0.5 }, "shadows": "frame",
+  "take": { "start": "massdriver", "input": [[0, "KeyW"], [4.167, ""]] }, "in": "rampExit(massdriver)-0.3", "hide": ["rings", "wires"],
+  "time": [[0, 1], [0.25, 0.55, "inOut"], [0.833, 0.55]],
+  "camera": { "rig": "fixed", "pos": [302, 1.2, -284], "lookOffset": [0, 0.4, 0], "lookFollow": 0.04, "lens": 20, "shake": { "amp": [[0, 0.3], [0.833, 0.15]], "freq": 6 } } }

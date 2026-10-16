@@ -16,10 +16,12 @@ import {
 import { seededRandom, tileFbm } from "./concrete-texture.js";
 
 // Time of day: the game runs in a clear Texas afternoon; ?tod=golden switches to a low
-// sunset sun for the promo (the AI intro is shot at golden hour and cuts into the lineup).
+// sunset sun for the promo (the AI intro is shot at golden hour and cuts into the lineup);
+// ?tod=sunset puts the sun on the horizon in front of the frame-4 camera for the promo's match cut.
 const TOD = (() => {
   try {
-    return new URLSearchParams(location.search).get("tod") === "golden" ? "golden" : "day";
+    const t = new URLSearchParams(location.search).get("tod");
+    return t === "golden" || t === "sunset" ? t : "day";
   } catch (a) {
     return "day";
   }
@@ -90,6 +92,25 @@ const PRESETS = {
     floodlights: !0,
     glints: !0,
   },
+};
+// the promo's match cut (shots/kf4.json): the AI intro ends on a photo with the sun sitting on the horizon
+// a few degrees right of centre, behind the lineup, under a sky full of orange-lit clouds
+PRESETS.sunset = {
+  ...PRESETS.golden,
+  sunDir: new Vector3(-0.993, 0.052, 0.1).normalize(),
+  sunColor: new Color(1.0, 0.5, 0.2),
+  zenith: new Color(0.03, 0.025, 0.06),
+  horizon: new Color(0.45, 0.12, 0.04),
+  haze: new Color(0.42, 0.16, 0.05),
+  fogDensity: 0.0008,
+  glow: new Color(1.2, 0.3, 0.04),
+  mie: new Vector3(0.14, 0.4, 2.0),
+  cloudShade: new Color(0.1, 0.05, 0.06),
+  cloudLit: 1.3,
+  cloudCover: [0.42, 0.66],
+  exposure: 0.8,
+  // freshly hosed apron (ground.js): darker, near-mirror patches that pick up the orange sky
+  wet: 0.9,
 };
 const DAY = PRESETS[TOD];
 

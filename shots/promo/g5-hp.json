@@ -1,0 +1,5 @@
+{ "name": "g5-hp", "notes": "Promo 10.833-11.667: from above the halfpipe deck, the car shoots up out of the pipe past the camera into the sunset and starts a barrel roll; speed ramp into slow motion.",
+  "size": [1920, 1080], "fps": 30, "duration": 0.833, "query": "tod=sunset", "blur": { "samples": 3, "shutter": 0.5 }, "shadows": "frame",
+  "take": { "start": "halfpipe", "input": [[0, "KeyW"], [2.167, "KeyW+KeyD"], [2.833, "KeyW"], [3.05, ""], [3.12, "KeyD"], [3.92, ""]] }, "in": 2.95, "hide": ["rings", "wires"],
+  "time": [[0, 1], [0.35, 1], [0.55, 0.5, "inOut"], [0.833, 0.5]],
+  "camera": { "rig": "fixed", "pos": [-216, 12, -180.5], "lookOffset": [0, 0.3, 0], "lookFollow": 0.05, "lens": 24 } }

@@ -115,6 +115,7 @@ function buildGround() {
       metalness: 0,
       color: 16777215,
     });
+  DAY.wet && (n.defines = { GROUND_WET: DAY.wet.toFixed(2) });
   (n.userData.macro = o),
     (n.onBeforeCompile = (r) => {
       Object.assign(r.uniforms, staticShadow),
@@ -141,7 +142,7 @@ vWPos = (modelMatrix * vec4(transformed,1.0)).xyz;`,
         uniform sampler2D uMacro;
         uniform vec3 uDonut;
         float gHash(vec2 p){ return fract(sin(dot(p, vec2(127.1,311.7)))*43758.5453); }
-        float gMacro; vec3 gMac; float gCrack = 0.0;
+        float gMacro; vec3 gMac; float gCrack = 0.0; float gWet = 0.0;
         // one family of sealed cracks: meandering lines roughly along x, about every
         // 'sp' metres, broken into segments; filtered so they fade instead of aliasing
         float gCrackLines( vec2 p, float sp, float seed ) {
@@ -210,7 +211,12 @@ vWPos = (modelMatrix * vec4(transformed,1.0)).xyz;`,
             m *= 0.7 + 0.3 * mac2.g;
             diffuseColor.rgb *= 1.0 - 0.6 * m;
           }
-        }`,
+        }
+        #ifdef GROUND_WET
+        // promo sunset (?tod=sunset): a hosed-down apron, darker where the water stands
+        gWet = GROUND_WET * smoothstep( 0.45, 0.65, gMac.r * 0.5 + mac2.g * 0.5 );
+        diffuseColor.rgb *= 1.0 - 0.5 * gWet;
+        #endif`,
           )
           .replace("#include <packing>", "#include <packing>\n" + STATIC_SHADOW_GLSL)
           .replace(
@@ -239,7 +245,10 @@ vWPos = (modelMatrix * vec4(transformed,1.0)).xyz;`,
             "#include <roughnessmap_fragment>",
             `#include <roughnessmap_fragment>
         roughnessFactor = clamp( roughnessFactor * mix( 1.04, 0.9, gMacro ), 0.55, 1.0 );
-        roughnessFactor = mix( roughnessFactor, 0.4, gCrack );`,
+        roughnessFactor = mix( roughnessFactor, 0.4, gCrack );
+        #ifdef GROUND_WET
+        roughnessFactor = mix( roughnessFactor, 0.18, gWet );
+        #endif`,
           ));
     });
   const c = new PlaneGeometry(12e3, 12e3),

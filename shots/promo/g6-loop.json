@@ -1,0 +1,4 @@
+{ "name": "g6-loop", "notes": "Promo 11.667-12.500: the whole loop side-on from a locked-off camera, the sun on the car as it runs upside down over the top.",
+  "size": [1920, 1080], "fps": 30, "duration": 0.833, "query": "tod=sunset", "blur": { "samples": 3, "shutter": 0.5 }, "shadows": "frame",
+  "take": { "start": "loop", "input": [[0, "KeyW"], [8.0, ""]] }, "in": 3.45, "hide": ["rings", "wires"],
+  "camera": { "rig": "fixed", "pos": [-321, 3, -53.5], "look": [-279, 9.6, -53.5], "lens": 30 } }

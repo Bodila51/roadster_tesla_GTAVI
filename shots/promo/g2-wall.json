@@ -1,0 +1,7 @@
+{ "name": "g2-wall", "notes": "Promo 6.667-8.333: telephoto into the sunset, the car rides up the reveal wall on suction, leaves the lip upside down and hangs there in slow motion.",
+  "size": [1920, 1080], "fps": 30, "duration": 1.667, "query": "tod=sunset", "blur": { "samples": 2, "shutter": 0.5 }, "shadows": "frame",
+  "take": { "start": { "pos": [0, 0, -118], "yaw": 180, "speed": 24 }, "input": [[0, ""], [1.0, "KeyW"], [1.85, "KeyS"], [2.6, ""]] },
+  "in": "rampExit(wall)-0.6", "hide": ["rings", "wires"],
+  "time": [[0, 1], [0.4, 1], [0.7, 0.4, "inOut"], [1.667, 0.4]],
+  "camera": { "rig": "telephoto", "pos": [68, 2.5, -92], "frame": [[0, 9], [1.667, 9.5]], "lookFollow": 0.12, "lookOffset": [0, 0.3, 0], "shake": { "amp": 0.02, "freq": 0.6 } },
+  "dof": { "focus": "car", "range": 6, "bokeh": 5 } }
