@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <title>Roadster 3D</title>
+  <meta name="description" content="Drive, fly and kickflip the new 2026 Tesla Roadster in your browser: the reveal wall, the lineup jump, a halfpipe and cold-gas thrusters. A fan-made playground by @snicklink." />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://roadster-unleashed.vercel.app/viewer.html" />
+  <meta property="og:title" content="Roadster 3D — rotate the new Tesla Roadster" />
+  <meta property="og:description" content="Drive up the reveal wall, flip off it upside down, kickflip over the Semi. The new Tesla Roadster as a browser game." />
+  <meta property="og:image" content="https://roadster-unleashed.vercel.app/og.jpg?v=2" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:site" content="@snicklink" />
+  <meta name="twitter:creator" content="@snicklink" />
+  <meta name="twitter:title" content="Roadster 3D — rotate the new Tesla Roadster" />
+  <meta name="twitter:description" content="Drive up the reveal wall, flip off it upside down, kickflip over the Semi. The new Tesla Roadster as a browser game." />
+  <meta name="twitter:image" content="https://roadster-unleashed.vercel.app/og.jpg?v=2" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Michroma&family=Inter:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root { --fg: #eef1f4; --dim: rgba(238,241,244,.55); --line: rgba(255,255,255,.12); }
+    html, body { margin: 0; height: 100%; overflow: hidden; background: #0a0c10; color: var(--fg); font-family: Inter, sans-serif; user-select: none; }
+    canvas { display: block; position: fixed; inset: 0; width: 100%; height: 100%; touch-action: none; }
+    .top { position: fixed; top: 22px; left: 0; right: 0; text-align: center; pointer-events: none; }
+    .wm { font: 400 30px Michroma; letter-spacing: .3em; font-style: italic; transform: skewX(-12deg); background: linear-gradient(180deg,#fff,#cfc6b2 55%,#f4efe4); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .sub { font: 400 9px Michroma; letter-spacing: .5em; color: var(--dim); margin-top: 6px; }
+    .bar { position: fixed; bottom: max(22px, env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; max-width: 94vw; }
+    .bar button, .bar a { font: 400 9.5px Michroma; letter-spacing: .2em; color: #fff; text-decoration: none; background: rgba(14,17,21,.5); border: 1px solid var(--line); border-radius: 22px; padding: 11px 16px; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); cursor: pointer; }
+    .bar button.on { background: rgba(255,255,255,.88); color: #000; }
+    .bar a.play { border-color: rgba(255,42,60,.6); }
+    .hint { position: fixed; bottom: max(76px, calc(env(safe-area-inset-bottom) + 60px)); left: 0; right: 0; text-align: center; font-size: 11px; color: var(--dim); pointer-events: none; transition: opacity 1s; }
+  </style>
+</head>
+<body>
+  <canvas id="c"></canvas>
+  <div class="top"><div class="wm">ROADSTER</div><div class="sub">FAN-BUILT 3D MODEL · DRAG TO ROTATE · SCROLL / PINCH TO ZOOM</div></div>
+  <div class="hint" id="hint">drag to orbit · right-drag to pan</div>
+  <div class="bar">
+    <button id="b-rot" class="on">AUTO-ROTATE</button>
+    <button id="b-lights" class="on">LIGHTS</button>
+    <button id="b-wing">WING</button>
+    <button id="b-env">NIGHT</button>
+    <button id="b-thrust">THRUSTERS</button>
+    <a class="play" href="./">PLAY ▸</a>
+  </div>
+  <a href="https://x.com/snicklink" target="_blank" rel="noopener" style="position:fixed;top:18px;right:18px;opacity:.75"><img src="/snicklink-logo-sm.png" alt="@snicklink" width="64" style="border-radius:7px;display:block" /></a>
+  <script type="module" src="/src/viewer.js"></script>
+</body>
+</html>
