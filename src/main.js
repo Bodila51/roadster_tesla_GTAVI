@@ -1,3 +1,4 @@
+import "./capture/boot.js"; // capture mode hook: inert unless the URL has ?capture
 import "./style.css";
 import { N8AOPostPass } from "n8ao";
 import {
@@ -30,25 +31,33 @@ import {
   WebGLRenderer,
 } from "three";
 import { AudioEngine } from "./audio/audio.js";
-import { CameraDirector } from "./camera/camera-director.js";
-import { buildRoadster } from "./car/roadster.js";
+import { CameraDirector, fitFov } from "./camera/camera-director.js";
+import { buildRoadster, loadRoadster } from "./car/roadster.js";
 import { ThrusterPlumes } from "./fx/plumes.js";
 import { SkidMarks } from "./fx/skids.js";
 import { SmokeSystem } from "./fx/smoke.js";
 import { Sparks } from "./fx/sparks.js";
 import { GameState } from "./game/game-state.js";
+import { RunMode } from "./game/run-mode.js";
 import { TouchControls, ji } from "./input/touch-controls.js";
 import { CarPhysics } from "./physics/car-physics.js";
 import { Hud } from "./ui/hud.js";
+import { Minimap } from "./ui/minimap.js";
+import { Tutorial } from "./ui/tutorial.js";
 import { BullseyeTarget } from "./world/bullseye.js";
+import { buildCity } from "./world/city/index.js";
+import { CITY } from "./world/city/layout.js";
 import { buildEnvironment } from "./world/environment.js";
 import { beamMaterial } from "./world/floodlights.js";
 import { Halfpipe } from "./world/halfpipe.js";
 import { WORLD } from "./world/layout.js";
+import { buildSea } from "./world/sea/sea.js";
 import { buildLineup } from "./world/lineup.js";
 import { Loop } from "./world/loop.js";
 import { MassDriver } from "./world/mass-driver.js";
 import { ProfileRamp } from "./world/ramp.js";
+import { buildPeople } from "./world/people/index.js";
+import { DAY } from "./world/sky.js";
 
 const ft = new URLSearchParams(location.search),
   De = ji();
@@ -68,6 +77,7 @@ Lt.setSize(innerWidth, innerHeight);
 Lt.shadowMap.enabled = !0;
 Lt.shadowMap.type = PCFSoftShadowMap;
 Lt.toneMapping = NoToneMapping;
+Lt.toneMappingExposure = ft.get("exp") ? +ft.get("exp") : DAY.exposure;
 Lt.outputColorSpace = SRGBColorSpace;
 const ct = new Scene(),
   wt = new PerspectiveCamera(62, innerWidth / innerHeight, 0.1, 6e3);
@@ -78,9 +88,9 @@ const Et = new EffectComposer(Lt, {
 let Tt = null;
 try {
   (Tt = new N8AOPostPass(ct, wt, innerWidth, innerHeight)),
-    (Tt.configuration.aoRadius = 1.6),
+    (Tt.configuration.aoRadius = 1.4),
     (Tt.configuration.distanceFalloff = 1),
-    (Tt.configuration.intensity = 2.2),
+    (Tt.configuration.intensity = 1.6),
     (Tt.configuration.halfRes = !0),
     De && (Tt.enabled = !1),
     (Tt.configuration.gammaCorrection = !1),
@@ -91,25 +101,25 @@ try {
 }
 const to = new BloomEffect({
     mipmapBlur: !0,
-    luminanceThreshold: 0.92,
-    luminanceSmoothing: 0.25,
-    intensity: 1.25,
-    radius: 0.78,
+    luminanceThreshold: DAY.bloom.threshold,
+    luminanceSmoothing: DAY.bloom.smoothing,
+    intensity: DAY.bloom.intensity,
+    radius: 0.7,
   }),
   Ji = new ChromaticAberrationEffect({
-    offset: new Vector2(6e-4, 6e-4),
+    offset: new Vector2(3e-4, 3e-4),
     radialModulation: !0,
-    modulationOffset: 0.35,
+    modulationOffset: 0.45,
   }),
   _i = new VignetteEffect({
-    darkness: 0.62,
-    offset: 0.28,
+    darkness: 0.36,
+    offset: 0.34,
   }),
   eo = new NoiseEffect({
     blendFunction: BlendFunction.OVERLAY,
     premultiply: !1,
   });
-eo.blendMode.opacity.value = 0.06;
+eo.blendMode.opacity.value = 0.025;
 const $i = new ToneMappingEffect({
     mode:
       ft.get("tm") === "agx"
@@ -127,15 +137,10 @@ const Kt = buildEnvironment(ct, Lt),
     heading: new Vector3(0, 0, -1),
   });
 ct.add(zt.group);
+// city: Port Sabal south of the runway (?nocity skips it)
+const Ct = ft.get("nocity") ? null : buildCity(ct, Lt, { mobile: De });
+// daylight: no wall uplights (night only)
 const so = [];
-for (const a of zt.wallLights) {
-  const e = new SpotLight(13625087, 2600, 60, 0.5, 0.6, 2);
-  e.position.copy(a).setY(0.5),
-    e.target.position.copy(zt.point(22, 0)),
-    ct.add(e),
-    ct.add(e.target),
-    so.push(e);
-}
 const Re = new Halfpipe({
   center: WORLD.halfpipe.clone(),
   along: new Vector3(1, 0, 0),
@@ -157,6 +162,7 @@ ct.add(vs.group);
 const xs = buildLineup();
 xs.group.position.copy(WORLD.lineup);
 ct.add(xs.group);
+await loadRoadster(); // GLB car if public/models/roadster.glb exists
 const ys = xs.boxes.map((a) => ({
     min: a.min.clone().add(WORLD.lineup),
     max: a.max.clone().add(WORLD.lineup),
@@ -166,19 +172,13 @@ const ys = xs.boxes.map((a) => ({
   ea = WORLD.lineup.clone(),
   Z = buildRoadster();
 ct.add(Z.root);
-for (const a of [-1, 1]) {
-  const e = new SpotLight(15397631, 1800, 140, 0.42, 0.5, 2);
-  e.position.set(a * 0.7, 0.62, 2.1),
-    e.target.position.set(a * 0.9, 0, 20),
-    Z.body.add(e),
-    Z.body.add(e.target);
-}
+const ppl = buildPeople(ct); // people: crowds, walkers, beach life
+// daylight: no headlight beams, tail glow or lift glow lights; bs and Ee stay detached so the
+// per-frame intensity updates below still work
 const bs = new PointLight(16718378, 1.5, 5, 2);
 bs.position.set(0, 0.5, -3.2);
-Z.body.add(bs);
 const Ee = new PointLight(12574975, 0, 18, 2);
 Ee.position.set(0, -0.4, 0);
-Z.body.add(Ee);
 const sa = [
     ...Kt.colliders,
     zt.towerBox,
@@ -186,8 +186,9 @@ const sa = [
     ...Oe.colliders,
     ...ae.colliders,
     ...ys.filter((a) => a.name !== "platform"),
+    ...(Ct ? Ct.colliders : []),
   ],
-  oa = [...ys, ...Re.deckBoxes, ...Kt.surfaces],
+  oa = [...ys, ...Re.deckBoxes, ...Kt.surfaces, ...(Ct ? Ct.surfaces : [])],
   F = new CarPhysics({
     ramps: [zt, Re, Oe, ae],
     colliders: sa,
@@ -195,7 +196,7 @@ const sa = [
   });
 F.reset(WORLD.spawn.clone(), Math.PI);
 const Ft = new SmokeSystem(ct),
-  ia = new ThrusterPlumes(Z),
+  ia = new ThrusterPlumes(Z, Ft),
   ve = new SkidMarks(ct),
   oo = new Sparks(ct),
   bt = new CameraDirector(wt, zt, [zt, Re, Oe, ae]),
@@ -230,6 +231,25 @@ const ye = new GameState({
     bullseye: vs,
   }),
   be = new Set();
+const Gm = new Minimap({ phys: F, game: ye, camera: wt });
+const Gu = new Tutorial({ phys: F, game: ye, minimap: Gm, dock: Gm.dock });
+// 2-MIN RUN (src/game/run-mode.js): letters, timer strip, results
+const Rn = new RunMode({
+  scene: ct,
+  phys: F,
+  game: ye,
+  hud: Xt,
+  audio: qt,
+  sparks: oo,
+  camera: wt,
+  world: { wall: zt, loop: Oe, halfpipe: Re, massdriver: ae, lineup: ys, bullseye: vs },
+  place: Rs,
+  onResults: () => {
+    (mt = "results"), (Rn.openedAt = performance.now()), xt == null || xt.show(!1);
+  },
+  onAgain: () => startRun(),
+  onRoam: () => startFreeRoam(),
+});
 let Is = !1;
 const ee = {
   w: !1,
@@ -241,7 +261,14 @@ addEventListener("keydown", (a) => {
     be.add(a.code);
     return;
   }
-  if ((be.add(a.code), mt !== "play" && mt !== "pause")) {
+  if ((be.add(a.code), mt === "results")) {
+    if (performance.now() - Rn.openedAt < 800) return;
+    a.code === "Enter" || a.code === "Space"
+      ? (a.preventDefault(), startRun())
+      : a.code === "Escape" && startFreeRoam();
+    return;
+  }
+  if (mt !== "play" && mt !== "pause") {
     (a.code === "Enter" || a.code === "Space") && Ue();
     return;
   }
@@ -343,8 +370,28 @@ let mt = "title";
 const io = document.getElementById("title"),
   na = document.getElementById("hud"),
   ds = document.getElementById("menu");
-document.getElementById("start").addEventListener("click", () => Ue());
-function Ue() {
+document.getElementById("start").addEventListener("click", () => startFreeRoam());
+const Sr = document.getElementById("start-run");
+(Sr.hidden = !1), Sr.addEventListener("click", () => startRun());
+for (const a of ["menu-run", "menu-roam"]) document.getElementById(a).hidden = !1;
+// 2-MIN RUN entry points: title #start-run / #start, pause menu run / roam
+function startRun() {
+  mt === "title"
+    ? Ue(!0)
+    : mt === "pause"
+      ? He()
+      : mt === "results" && ((mt = "play"), xt == null || xt.show(!0));
+  Rn.start();
+}
+function startFreeRoam() {
+  Rn.stop(), Rn.hideResults();
+  mt === "title"
+    ? Ue()
+    : mt === "pause"
+      ? He()
+      : mt === "results" && ((mt = "play"), xt == null || xt.show(!0));
+}
+function Ue(quiet) {
   var a, e;
   if (mt !== "play") {
     if (
@@ -365,22 +412,16 @@ function Ue() {
             .call(a, {
               navigationUI: "hide",
             })
-            .then(() => {
-              var s, t;
-              return (t = (s = screen.orientation) == null ? void 0 : s.lock) ==
-                null
-                ? void 0
-                : t.call(s, "landscape").catch(() => {});
-            })
             .catch(() => {});
       } catch {}
     }
     ft.get("cine") ||
+      quiet ||
       Xt.toast(
         "THE REVEAL WALL IS STRAIGHT AHEAD",
         De
-          ? "Push the stick up — the suction keeps you on it"
-          : "Hold W — the suction keeps you on it",
+          ? "Push the stick up: the suction keeps you on it"
+          : "Hold W: the suction keeps you on it",
         !0,
       );
   }
@@ -402,6 +443,8 @@ ds.addEventListener("click", (a) => {
     s = a.target.dataset.tp;
   e === "resume" && He(),
     e === "reset-progress" && ye.resetProgress(),
+    e === "run" && startRun(),
+    e === "roam" && startFreeRoam(),
     s && (Ms(s), He());
 });
 document.getElementById("opt-slowmo").addEventListener("change", (a) => {
@@ -433,21 +476,47 @@ const ao = {
     donut: [WORLD.donut.clone().add(new Vector3(0, 0, 18)), Math.PI / 2],
     halfpipe: [WORLD.halfpipe.clone().add(new Vector3(60, 0, 0)), -Math.PI / 2],
     loop: [WORLD.loop.clone().add(new Vector3(0, 0, -70)), 0],
+    city: [new Vector3(CITY.tp.pos[0], CITY.tp.pos[1], CITY.tp.pos[2]), CITY.tp.heading],
     massdriver: [
       WORLD.massdriver.clone().add(new Vector3(-90, 0, 0)),
       Math.PI / 2,
     ],
+    // the seafront promenade, facing the sea and the pier
+    beach: [new Vector3(-45, 0, 646), 0],
   },
   Bs = Object.keys(ao);
 let _e = 0;
-function Ms(a) {
-  const [e, s] = ao[a];
+// puts the car at a start, the chase camera behind it (teleports, run start)
+function Rs(e, s) {
   F.reset(e.clone(), s),
     (bt.cut = null),
     bt.pos.copy(e).add(new Vector3(-Math.sin(s) * 8, 3, -Math.cos(s) * 8)),
     bt.behind.set(Math.sin(s), 0, Math.cos(s));
   for (let t = 0; t < 4; t++) ve.break(t);
-  ft.get("cine") || Xt.toast("TELEPORT", a.toUpperCase());
+}
+function Ms(a) {
+  const [e, s] = ao[a];
+  Rs(e, s), ft.get("cine") || Xt.toast("TELEPORT", a.toUpperCase());
+}
+function place(e, s) {
+  return Rs(e, s);
+}
+// the sea, the beach and the pier (src/world/sea): splash and respawn when the car ends up in the water
+let Sea = { update() {}, holding: !1 };
+try {
+  Sea = buildSea(ct, {
+    renderer: Lt,
+    env: Kt,
+    phys: F,
+    smoke: Ft,
+    audio: qt,
+    rig: bt,
+    game: ye,
+    place,
+    toast: (a, b) => ft.get("cine") || Xt.toast(a, b),
+  });
+} catch (a) {
+  console.error("sea disabled", a);
 }
 function la() {
   (_e = (_e + 1) % Bs.length), Ms(Bs[_e]);
@@ -491,7 +560,7 @@ function da(a, e, s) {
   (Z.body.position.y = F.susp * 0.9),
     Z.body.rotation.set(F.bodyPitch, 0, F.bodyRoll);
   for (const l of Z.wheels) {
-    (l.spin.rotation.x = F.wheelSpin),
+    (l.spin.rotation.x = F.wheelSpin * (l.spinFactor ?? 1)), // GLB wheels: game radius / model radius
       l.front && (l.pivot.rotation.y = F.steer * 0.45);
     const d = t ? -0.06 : F.susp * 0.4;
     l.pivot.position.y = l.baseY + d;
@@ -505,7 +574,7 @@ function da(a, e, s) {
     ((o ? n.upY : n.stowY) - Z.wing.position.y) * Math.min(1, a * 5)),
     (Z.wing.visible = Z.wing.position.y > n.stowY + 0.02);
   const c = F.thrust,
-    r = F.mode === "air" ? Math.abs(e.steer) : 0;
+    r = F.mode === "air" ? Math.abs(e.steer) * F.rcsAuthority : 0;
   ia.update(a, s, {
     lift: c.lift,
     rear: c.boost,
@@ -513,8 +582,11 @@ function da(a, e, s) {
       Math.max(r, c.rcs * 0.4) *
       (F.mode === "air" || F.mode === "crashed" ? 1 : 0),
     top:
-      (F.mode === "air" ? Math.abs(e.throttle - e.brake) * 0.8 : 0) +
+      (F.mode === "air"
+        ? Math.abs(e.throttle - e.brake) * 0.8 * F.rcsAuthority
+        : 0) +
       (F.mode === "crashed" ? c.rcs : 0),
+    ground: F.surfaceAt(F.pos.x, F.pos.z, F.pos.y + 0.5).h,
   });
   for (const l of Z.nozzleGlows) l.material.emissiveIntensity = c.boost ? 6 : 0;
   if (
@@ -542,6 +614,7 @@ function da(a, e, s) {
                     (Math.random() - 0.5) * 2,
                   ),
                 ),
+              kind: "tyre",
               size: 1.2,
               grow: 3,
               life: 4,
@@ -553,81 +626,6 @@ function da(a, e, s) {
         : ve.break(f);
     }
   } else for (let l = 0; l < 4; l++) ve.break(l);
-  if (c.lift > 0 || (F.mode === "crashed" && c.rcs)) {
-    const l = F.surfaceAt(F.pos.x, F.pos.z, F.pos.y + 0.5).h,
-      d = F.pos.y - l;
-    for (const f of Z.thrusters.lift) {
-      const p = f.p.clone().applyMatrix4(Z.body.matrixWorld),
-        w = f.d.clone().transformDirection(Z.body.matrixWorld);
-      if (
-        (Math.random() < a * 45 &&
-          Ft.spawn({
-            pos: p.clone().addScaledVector(w, 1.2),
-            vel: w
-              .clone()
-              .multiplyScalar(14)
-              .add(F.vel.clone().multiplyScalar(0.5)),
-            size: 0.5,
-            grow: 2.4,
-            life: 1.6,
-            alpha: 0.22,
-            drag: 2.6,
-            rise: 0.4,
-            color: new Color(0.8, 0.86, 0.95),
-          }),
-        d < 9 && w.y < -0.3 && Math.random() < a * 70 * (1 - d / 9))
-      ) {
-        const S = p.clone().addScaledVector(w, (p.y - l) / Math.max(0.3, -w.y));
-        S.y = l + 0.3;
-        const y = new Vector3(Math.random() - 0.5, 0, Math.random() - 0.5)
-          .normalize()
-          .multiplyScalar(8 + Math.random() * 10);
-        Ft.spawn({
-          pos: S,
-          vel: y.setY(1 + Math.random() * 2),
-          size: 1.5,
-          grow: 4.5,
-          life: 4.5,
-          alpha: 0.24 * (1 - d / 9),
-          drag: 1.4,
-          rise: 0.5,
-        });
-      }
-    }
-  }
-  if (c.boost)
-    for (const l of Z.thrusters.rear) {
-      if (Math.random() > a * 30) continue;
-      const d = l.p.clone().applyMatrix4(Z.body.matrixWorld),
-        f = l.d.clone().transformDirection(Z.body.matrixWorld);
-      Ft.spawn({
-        pos: d.addScaledVector(f, 1),
-        vel: f.multiplyScalar(10).add(F.vel.clone().multiplyScalar(0.6)),
-        size: 0.4,
-        grow: 2.2,
-        life: 1.4,
-        alpha: 0.16,
-        drag: 2,
-        rise: 0.3,
-        color: new Color(0.85, 0.88, 0.95),
-      });
-    }
-  if (F.mode === "air" && Math.abs(e.steer) > 0)
-    for (const l of Z.thrusters.side) {
-      if (Math.random() > a * 20) continue;
-      const d = l.p.clone().applyMatrix4(Z.body.matrixWorld),
-        f = l.d.clone().transformDirection(Z.body.matrixWorld);
-      Ft.spawn({
-        pos: d.addScaledVector(f, 0.8),
-        vel: f.multiplyScalar(9).add(F.vel.clone().multiplyScalar(0.7)),
-        size: 0.35,
-        grow: 1.8,
-        life: 1.1,
-        alpha: 0.18,
-        drag: 2.5,
-        rise: 0.2,
-      });
-    }
   if (es === "air" && F.mode === "ground") {
     const l = Math.min(40, 10 + Math.abs(F.suspV) * 6);
     for (let d = 0; d < l; d++) {
@@ -639,6 +637,7 @@ function da(a, e, s) {
         vel: new Vector3(Math.cos(f) * 7, 0.8, Math.sin(f) * 7).add(
           F.vel.clone().multiplyScalar(0.3),
         ),
+        kind: "dust",
         size: 1,
         grow: 3,
         life: 3,
@@ -672,7 +671,7 @@ function ua(a) {
     (ft.get("th") ? +ft.get("th") : 1.5) + Math.sin(ss * 0.2) * 0.3,
     t.z + Math.sin(e) * s,
   ),
-    (wt.fov = 30),
+    (wt.fov = fitFov(30, wt.aspect, 0.75)),
     wt.updateProjectionMatrix(),
     wt.lookAt(t.x, t.y + 0.55, t.z),
     Math.random() < a * 6 &&
@@ -728,7 +727,7 @@ function lo() {
     s = a * e;
   Gt += s;
   const t = mt === "play" ? aa() : ma;
-  (F.events.length = 0), F.update(s, t);
+  (F.events.length = 0), Sea.holding || F.update(s, t);
   {
     const i = Math.hypot(F.pos.x, F.pos.z);
     if (i > 1600) {
@@ -744,11 +743,14 @@ function lo() {
           setTimeout(() => (Je = !1), 4e3));
     }
   }
+  Sea.update(s, Gt, wt);
   mt === "play" && ye.update(a, s, F, t, bt),
+    mt === "play" && Rn.update(a),
     da(s, t, Gt),
     Ft.update(s, ha),
     oo.update(s),
     Kt.update(s, Gt, F.pos),
+    Ct && Ct.update(wt, Gt),
     (beamMaterial.uniforms.uTime.value = Gt),
     ae.update(s, Gt, F.mode === "ramp" && F.R === ae ? F.rs : null),
     vs.update(Gt),
@@ -759,6 +761,7 @@ function lo() {
           boost: t.boost && F.thrust.boost > 0,
         })
       : ua(a),
+    ppl.update(s, Gt, F, wt),
     qt.update(a, {
       speed: F.speed,
       throttle: t.throttle - t.brake * 0.5,
@@ -773,6 +776,8 @@ function lo() {
       onGround: F.mode === "ground" || F.mode === "ramp",
       timeScale: e,
     }),
+    Gu.update(a, t, mt === "play"),
+    Gm.update(a, mt === "play"),
     Et.render(a);
 }
 document.getElementById("fade").classList.add("off");
@@ -791,12 +796,20 @@ window.__rd = {
   scene: ct,
   camera: wt,
   startGame: Ue,
+  startRun,
+  startFreeRoam,
+  run: Rn,
   teleport: Ms,
   renderer: Lt,
   composer: Et,
   aoPass: Tt,
   smoke: Ft,
   world: Kt,
+  city: Ct,
   bloom: to,
+  guide: { minimap: Gm, tutorial: Gu },
+  people: ppl,
+  sea: Sea,
 };
 ft.get("autostart") && setTimeout(Ue, 300);
+ft.get("run") && setTimeout(startRun, 300);

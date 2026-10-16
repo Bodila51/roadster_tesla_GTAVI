@@ -221,7 +221,7 @@ class MassDriver extends ProfileRamp {
       (this.chaseMat.uniforms.uCharge.value = this.charge);
     for (const o of this.coils) {
       const n = i ? Math.exp(-Math.abs(o.s - t) * 0.25) : 0,
-        c = 1 + 0.6 * Math.sin(s * 3 - o.s * 0.3);
+        c = 0.45 + 0.3 * Math.sin(s * 3 - o.s * 0.3);
       o.mesh.material.emissiveIntensity = c + n * 14;
     }
   }

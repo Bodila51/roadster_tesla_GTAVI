@@ -1,0 +1,195 @@
+/* Tutorial hint: one chamfered plate with an orange step chip, centred above
+   the speed dash (the radar has the bottom-left corner), clear of the stick
+   and the action pads on phones. */
+.rd-tut {
+  position: fixed;
+  z-index: 4;
+  left: 50%;
+  bottom: calc(var(--rd-dash-top) + 22px);
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: min(440px, calc(100vw - 2 * var(--rd-el)));
+  display: none;
+  pointer-events: none;
+}
+.rd-tut.on {
+  display: block;
+}
+.rd-tut.paused {
+  visibility: hidden;
+}
+.rd-tut-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+  padding: 8px 8px 8px 0;
+  background: var(--rd-plate-hi);
+  box-shadow: inset var(--rd-tab) 0 0 var(--rd-accent);
+}
+.rd-tut-card.in {
+  animation: rd-tut-in 0.34s var(--rd-snap) backwards;
+}
+@keyframes rd-tut-in {
+  0% {
+    clip-path: inset(0 100% 0 0);
+    transform: translateY(6px);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+    transform: none;
+  }
+}
+.rd-tut-card.ok {
+  box-shadow: inset var(--rd-tab) 0 0 var(--rd-good);
+}
+.rd-tut-card.ok .rd-tut-n {
+  color: var(--rd-on-accent);
+  background: var(--rd-good);
+}
+.rd-tut-card.final {
+  box-shadow: inset var(--rd-tab) 0 0 var(--rd-good);
+  padding-right: 14px;
+}
+.rd-tut-card.final .rd-tut-n,
+.rd-tut-card.final .rd-tut-skip {
+  display: none;
+}
+.rd-tut-card.final .rd-tut-txt {
+  padding-left: 14px;
+}
+.rd-tut-n {
+  flex: none;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  margin-left: var(--rd-tab);
+  padding: 0 8px 0 9px;
+  font: 800 13px/1 var(--rd-font);
+  font-stretch: var(--rd-stretch);
+  font-variant-numeric: tabular-nums;
+  color: var(--rd-on-accent);
+  background: var(--rd-accent);
+}
+.rd-tut-txt {
+  flex: 1;
+  min-width: 0;
+}
+.rd-tut-main {
+  font: 700 var(--fs-lead, 17px) / 1.2 var(--rd-font);
+  color: var(--rd-fg);
+}
+.rd-tut-sub {
+  margin-top: 3px;
+  font: 500 var(--fs-small, 11.5px) / 1.3 var(--rd-font);
+  color: var(--rd-fg-2);
+}
+.rd-tut-main .rd-key {
+  font-size: 12px;
+  padding: 3px 6px 2px;
+}
+.rd-key-ico svg {
+  display: block;
+  width: 12px;
+  height: 12px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+}
+.rd-tut-skip {
+  flex: none;
+  position: relative;
+  align-self: center;
+  min-height: 32px;
+  padding: 0 10px;
+  border: 0;
+  font: 800 var(--fs-label, 10.5px) / 1 var(--rd-font);
+  letter-spacing: var(--rd-track);
+  text-transform: uppercase;
+  color: var(--rd-fg-2);
+  background: var(--rd-ink-2);
+  box-shadow: inset 0 0 0 1px var(--rd-hair-2);
+  pointer-events: auto;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.rd-tut-skip::after {
+  /* bigger hit area than the visible chip */
+  content: "";
+  position: absolute;
+  inset: -8px -8px -8px -6px;
+}
+.rd-tut-skip:hover {
+  color: var(--rd-fg);
+  background: var(--rd-ink-3);
+}
+
+/* the "?" that re-opens the tutorial (docked next to the minimap) */
+.rd-tut-q {
+  position: relative;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 0;
+  font: 800 15px/1 var(--rd-font);
+  color: var(--rd-fg);
+  background: var(--rd-plate);
+  box-shadow: inset 0 0 0 1px var(--rd-hair-2);
+  --rd-cut: var(--rd-cut-s);
+  clip-path: polygon(0 0, calc(100% - var(--rd-cut)) 0, 100% var(--rd-cut), 100% 100%, var(--rd-cut) 100%, 0 calc(100% - var(--rd-cut)));
+  cursor: pointer;
+  touch-action: manipulation;
+  pointer-events: auto;
+}
+.rd-tut-q:hover {
+  background: var(--rd-ink-3);
+}
+.rd-tut-q:active {
+  color: var(--rd-on-accent);
+  background: var(--rd-accent);
+}
+.rd-tut-q.hide,
+.rd-tut-q.off {
+  display: none;
+}
+body.touch .rd-tut-q {
+  width: 38px;
+  height: 38px;
+}
+
+/* one thing at a time: the key hints rest while the tutorial runs */
+body.rd-tut-on #hints {
+  visibility: hidden;
+}
+
+/* phones: a little higher, between the stick and the pads */
+body.touch .rd-tut {
+  bottom: calc(var(--rd-dash-top) + 54px);
+}
+body.touch .rd-tut-main {
+  font-size: 15px;
+}
+body.touch .rd-tut-card {
+  min-height: 44px;
+  gap: 10px;
+  padding: 6px 6px 6px 0;
+}
+@media (orientation: portrait) and (max-width: 600px) {
+  body.touch .rd-tut {
+    left: var(--rd-el);
+    right: var(--rd-er);
+    width: auto;
+    max-width: none;
+    transform: none;
+    bottom: calc(var(--rd-dash-top) + 12px);
+  }
+}
+body.rd-replay .rd-tut {
+  display: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .rd-tut-card.in {
+    animation: none;
+  }
+}

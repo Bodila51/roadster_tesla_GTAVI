@@ -1,6 +1,29 @@
 import { Mesh, MeshStandardMaterial, TorusGeometry, Vector3 } from "three";
+import { ComboUi } from "../ui/combo-ui.js";
 import { storageGet, storageSet } from "../util/storage.js";
+import { GRADE_MULT, landingGrade } from "./landing.js";
 import { MISSIONS, MPS_TO_MPH } from "./missions.js";
+
+// Flyover checks (lineup, Semi) only count below this height above the tallest roof
+// of the row, so a hop just over the Semi counts and a flight far above it does not.
+const FLY_CEILING = 5;
+// Combos: every element (trick, air time, wall ride, flyover, ring, pipe air, loop,
+// drift, ...) joins one combo whose multiplier grows by COMBO_STEP per element, up
+// to COMBO_MAX. The combo stays alive in the air, on a ramp or wall, while drifting
+// and for COMBO_GRACE s on the ground, then it banks (points x multiplier). A crash
+// burns everything not banked yet. Points scored during a jump join the combo only
+// when the jump lands, scaled by the landing grade (landing.js).
+const COMBO_GRACE = 1.5,
+  COMBO_STEP = 0.5,
+  COMBO_MAX = 8;
+// Game events for other modules: window CustomEvents with the payload in
+// e.detail, sent synchronously from inside update() in the frame they happen.
+//   rd:land    {grade, airTime, points, tricks, big, pos}  a jump ended on its wheels
+//   rd:crash   {pos}                                      a jump or ride ended in a crash
+//   rd:combo   {count, mult, points, state}               state grow | bank | burn
+//   rd:mission {id, name}                                  a mission completed
+const emit = (name, detail) => dispatchEvent(new CustomEvent(name, { detail }));
+const xyz = (v) => ({ x: +v.x.toFixed(2), y: +v.y.toFixed(2), z: +v.z.toFixed(2) });
 
 class GameState {
   constructor({ hud: e, audio: s, scene: t, lineup: i, ramp: o, bullseye: n }) {
@@ -17,6 +40,7 @@ class GameState {
       (this.pending = 0),
       (this.mult = 1),
       (this.tricks = []),
+      (this.combo = null),
       (this.jump = null),
       (this.launchT = null),
       (this.drift = 0),
@@ -26,9 +50,15 @@ class GameState {
         scale: 1,
       }),
       (this.autoSlowmo = !0),
+      (this.flyCeil =
+        Math.max(
+          ...i.boxes.filter((h) => h.name !== "platform").map((h) => h.max.y),
+        ) + FLY_CEILING),
       (this.rings = this.buildRings(t)),
+      this.resetCombo(),
       this.hud.renderMissions(MISSIONS, this.done),
-      this.hud.setScore(this.score, this.best);
+      this.hud.setScore(this.score, this.best),
+      (this.comboUi = new ComboUi(this, COMBO_GRACE));
   }
   buildRings(e) {
     const s = [
@@ -44,13 +74,13 @@ class GameState {
       t = new MeshStandardMaterial({
         color: 4120,
         emissive: 5953791,
-        emissiveIntensity: 5,
+        emissiveIntensity: 1.8,
         roughness: 0.3,
       }),
       i = new MeshStandardMaterial({
         color: 328965,
         emissive: 3211162,
-        emissiveIntensity: 1.2,
+        emissiveIntensity: 0.45,
         roughness: 0.3,
         transparent: !0,
         opacity: 0.35,
@@ -77,46 +107,87 @@ class GameState {
     this.done.add(e), storageSet("rdstr.done", JSON.stringify([...this.done]));
     const s = MISSIONS.find((i) => i.id === e);
     this.hud.renderMissions(MISSIONS, this.done),
+      emit("rd:mission", { id: e, name: s.name }),
       this.hud.toast("MISSION COMPLETE", s.name, !0),
       (t = this.audio) == null || t.event("missionComplete"),
-      this.addScore(2500, !1),
+      this.addScore(2500),
       this.done.size === MISSIONS.length &&
         setTimeout(
           () => this.hud.toast("ALL MISSIONS", "You are a Roadster pilot.", !0),
           2500,
         );
   }
-  addScore(e, s = !0) {
-    if (s) {
-      this.pending += e;
-      return;
-    }
+  // Adds points straight to the score (missions, banked combos).
+  addScore(e) {
     (this.score += e),
       this.score > this.best &&
         ((this.best = this.score), storageSet("rdstr.best", String(this.best))),
       this.hud.setScore(this.score, this.best);
   }
-  callTrick(e, s) {
-    var t;
-    this.tricks.push(e),
-      (this.pending += s),
-      (this.mult = Math.min(8, 1 + (this.tricks.length - 1) * 0.5)),
-      this.hud.trick(e, s, this.mult),
-      (t = this.audio) == null ||
-        t.event("trick", Math.min(5, this.tricks.length));
-  }
-  bank(e) {
-    if (this.pending > 0) {
-      const s = Math.round(this.pending * this.mult);
-      this.addScore(s, !1), this.hud.banked(s, e);
-    }
-    (this.pending = 0), (this.mult = 1), (this.tricks = []);
-  }
-  lose() {
-    this.pending > 0 && this.hud.lost(),
+  resetCombo() {
+    (this.combo = { count: 0, base: 0, jump: 0, names: [], grace: 0, last: "" }),
       (this.pending = 0),
       (this.mult = 1),
       (this.tricks = []);
+  }
+  get comboPoints() {
+    const c = this.combo;
+    return Math.round((c.base + c.jump) * this.mult);
+  }
+  // One combo element. During a jump the points wait for the landing grade.
+  callTrick(e, s) {
+    var t;
+    const c = this.combo;
+    this.jump ? ((c.jump += s), c.names.push(e)) : (c.base += s),
+      c.count++,
+      (c.last = e),
+      (c.grace = COMBO_GRACE),
+      this.tricks.push(e),
+      (this.pending = c.base + c.jump),
+      (this.mult = Math.min(COMBO_MAX, 1 + (c.count - 1) * COMBO_STEP)),
+      this.hud.trick(e, s, this.mult),
+      (t = this.audio) == null || t.event("trick", Math.min(5, c.count)),
+      emit("rd:combo", {
+        count: c.count,
+        mult: this.mult,
+        points: this.comboPoints,
+        state: "grow",
+      });
+  }
+  // Ends a jump: its points join the combo, scaled by the landing grade (no grade:
+  // a short hop, points join as they are). Returns the points that joined.
+  settleJump(grade) {
+    const c = this.combo,
+      pts = grade ? Math.round(c.jump * GRADE_MULT[grade]) : c.jump;
+    return (
+      (c.base += pts),
+      (c.jump = 0),
+      (c.names = []),
+      (this.pending = c.base),
+      c.count && (c.grace = COMBO_GRACE),
+      pts
+    );
+  }
+  bank() {
+    const c = this.combo;
+    if (!c.count) return;
+    const s = this.comboPoints,
+      n = c.count,
+      m = this.mult;
+    s > 0 &&
+      (this.addScore(s), this.hud.banked(s, n > 1 ? `${n} TRICK COMBO` : c.last)),
+      this.resetCombo(),
+      emit("rd:combo", { count: n, mult: m, points: s, state: "bank" });
+  }
+  lose() {
+    const c = this.combo;
+    if (!c.count) return this.resetCombo();
+    const s = this.comboPoints,
+      n = c.count,
+      m = this.mult;
+    this.hud.lost(),
+      this.resetCombo(),
+      emit("rd:combo", { count: n, mult: m, points: s, state: "burn" });
   }
   requestSlowmo(e = 0.9, s = 0.33) {
     this.autoSlowmo &&
@@ -183,9 +254,7 @@ class GameState {
           h.surface === "loop" && o.endCut(0.8),
             h.surface === "loop" &&
               t.rampMaxTheta > Math.PI * 2 - 0.6 &&
-              (this.callTrick("LOOP THE LOOP", 1500),
-              this.complete("loop"),
-              this.bank("LOOP"));
+              (this.callTrick("LOOP THE LOOP", 1500), this.complete("loop"));
           break;
         case "rampFall":
           (this.jump = {
@@ -211,7 +280,10 @@ class GameState {
               (z = 700 * u);
           } else (T = `${360 * u}`), (z = 400 * u);
           this.callTrick(T, z),
-            h.axis === "roll" && u >= 2 && this.complete("double"),
+            this.jump && (this.jump.tricks = (this.jump.tricks || 0) + 1),
+            h.axis === "roll" &&
+              this.jump &&
+              (this.jump.rolls = Math.max(this.jump.rolls || 0, u)),
             h.axis === "roll" &&
               this.jump &&
               (this.overSemiNow || this.jump.rollOverSemi) &&
@@ -220,11 +292,11 @@ class GameState {
         }
         case "land": {
           if (h.airTime < 0.35 && !((l = this.jump) != null && l.fromRamp)) {
-            this.jump = null;
+            this.settleJump(null), (this.jump = null);
             break;
           }
-          const u = h.tilt > 0.82,
-            T = h.impact > 12;
+          const T = h.impact > 12,
+            grade = landingGrade(h.tilt, h.impact);
           if (
             ((d = this.audio) == null ||
               d.event(T ? "hardLand" : "land", Math.min(1, h.impact / 14)),
@@ -240,6 +312,7 @@ class GameState {
               this.jump.inverted &&
               h.surface !== "wall" &&
               h.surface !== "halfpipe" &&
+              grade !== "sloppy" &&
               (this.callTrick("THE REVEAL", 2e3), this.complete("reveal")),
             ((p = this.jump) == null ? void 0 : p.surface) === "massdriver" &&
               this.bullseye)
@@ -250,7 +323,7 @@ class GameState {
                 z.label === "BULLSEYE" && this.complete("bullseye"))
               : this.hud.toast(
                   "MISSED THE TARGET",
-                  `${Math.round(z.d)} m off — try lift and thrust`,
+                  `${Math.round(z.d)} m off. Try lift and thrust`,
                   !1,
                 );
           }
@@ -260,20 +333,40 @@ class GameState {
               `PIPE AIR ${this.jump.pipeAir.toFixed(1)} m`,
               Math.round(this.jump.pipeAir * 120),
             ),
-            this.complete("pipe")),
+            h.surface === "halfpipe" && this.complete("pipe")),
+            this.jump && this.jump.rolls >= 2 && this.complete("double"),
             this.jump &&
-              this.jump.over.size >= 5 &&
-              (this.callTrick("LINEUP CLEARED", 1500), this.complete("lineup")),
+              (this.jump.over.size >= 5
+                ? (this.callTrick("LINEUP CLEARED", 1500),
+                  this.complete("lineup"))
+                : this.jump.over.size > 0 &&
+                  this.callTrick(
+                    this.jump.over.size > 1
+                      ? `FLYOVER ×${this.jump.over.size}`
+                      : "FLYOVER",
+                    250 * this.jump.over.size,
+                  )),
             (S = this.jump) != null && S.semiRoll && this.complete("semiflip"),
             h.surface === "semi" &&
-              (this.callTrick("ROOFTOP", 1200), this.complete("roof")),
-            u &&
-              h.airTime > 1 &&
-              this.callTrick(
-                T ? "HEAVY LANDING" : "CLEAN LANDING",
-                T ? 100 : 300,
-              ),
-            this.bank(u ? "LANDED" : "SKETCHY"),
+              (this.callTrick("ROOFTOP", 1200), this.complete("roof"));
+          const J = this.jump,
+            names = this.combo.names.slice(),
+            raw = this.combo.jump,
+            pts = this.settleJump(grade);
+          grade === "perfect" &&
+            raw > 0 &&
+            ((d = this.audio) == null || d.event("trick", 5)),
+            emit("rd:land", {
+              grade,
+              airTime: +h.airTime.toFixed(2),
+              points: pts,
+              tricks: names,
+              big:
+                h.airTime >= 2.5 ||
+                ((J && J.tricks) || 0) >= 2 ||
+                !!(J && J.over && J.over.size),
+              pos: xyz(t.pos),
+            }),
             (this.jump = null),
             o.endCut(0.9);
           break;
@@ -283,6 +376,7 @@ class GameState {
             y.event("crash", Math.min(1, (h.impact || 8) / 14)),
             o.shake(1),
             this.lose(),
+            emit("rd:crash", { pos: xyz(t.pos) }),
             this.hud.flash("CRASH", "RCS recovery…"),
             (this.jump = null),
             o.endCut(1.4);
@@ -326,7 +420,13 @@ class GameState {
           t.pos.x < h.max.x + 0.3 &&
           t.pos.z > h.min.z - 0.5 &&
           t.pos.z < h.max.z + 0.5 &&
+          (t.pos.y >= this.flyCeil &&
+            !this.jump.tooHigh &&
+            ((this.jump.tooHigh = !0),
+            this.hud.toast("TOO HIGH", "Fly within 5 m of the roofs", !1)),
+          !0) &&
           t.pos.y > h.max.y - 0.2 &&
+          t.pos.y < this.flyCeil &&
           (this.jump.over.has(h.name) ||
             (this.jump.over.add(h.name),
             this.jump.over.size === 1 &&
@@ -336,12 +436,12 @@ class GameState {
             ((this.overSemiNow = !0),
             Math.abs(t.angVel.z) > 3 && (this.jump.rollOverSemi = !0)));
     if (t.mode === "ground") {
-      const h = i.throttle > 0.5 || i.boost;
+      const h = (i.throttle > 0.5 || i.boost) && !(i.brake > 0.5);
       if (
         ((this.prevSpeed ?? 0) < 0.3 &&
           h &&
           this.launchT === null &&
-          (this.launchT = s),
+          (this.launchT = 0),
         this.launchT !== null)
       )
         if (!h || t.mode !== "ground") this.launchT = null;
@@ -362,8 +462,7 @@ class GameState {
           this.drift >= 4 && this.complete("smoke"))
         : this.drift > 0 &&
           (this.drift > 1.2 &&
-            (this.addScore(Math.round(this.driftScore), !1),
-            this.hud.banked(Math.round(this.driftScore), "DRIFT")),
+            this.callTrick("DRIFT", Math.round(this.driftScore)),
           (this.drift = 0),
           (this.driftScore = 0),
           this.hud.drift(0, 0));
@@ -374,8 +473,13 @@ class GameState {
       h.lastSide !== null &&
         u !== h.lastSide &&
         t.pos.distanceTo(h.center) < h.r + 0.5 &&
-        (this.ringsGot.has(h.i) ||
-          (this.ringsGot.add(h.i),
+        (this.ringsGot.has(h.i)
+          ? this.jump &&
+            !(this.jump.rings || (this.jump.rings = new Set())).has(h.i) &&
+            (this.jump.rings.add(h.i), this.callTrick("RING", 250))
+          : (this.jump &&
+              (this.jump.rings || (this.jump.rings = new Set())).add(h.i),
+            this.ringsGot.add(h.i),
           storageSet("rdstr.rings", JSON.stringify([...this.ringsGot])),
           (h.m.material = h.matGot),
           (x = this.audio) == null || x.event("ring"),
@@ -384,6 +488,7 @@ class GameState {
         (h.lastSide = u),
         (h.m.rotation.z += e * 0.4);
     }
+    this.updateCombo(e, t, n);
     this.hud.telemetry({
       mph: c,
       gas: t.gas / 100,
@@ -395,7 +500,23 @@ class GameState {
       pending: this.pending,
       mult: this.mult,
       launchT: this.launchT,
-    });
+    }),
+      this.comboUi.frame();
+  }
+  // The combo lives while the car is in the air, on a ramp or wall, or drifting;
+  // on the ground it banks once COMBO_GRACE s pass without a new element.
+  updateCombo(e, t, n) {
+    const c = this.combo;
+    if (!c.count || t.mode === "crashed") return;
+    t.mode === "air" ||
+    t.mode === "ramp" ||
+    (t.mode === "ground" && t.slip > 3.2 && n > 6)
+      ? (c.grace = COMBO_GRACE)
+      : (c.grace -= e) <= 0 && this.bank();
+  }
+  // Test harness hook: drop any combo in progress.
+  resetForTest() {
+    this.resetCombo(), (this.jump = null);
   }
   resetProgress() {
     this.done.clear(),

@@ -97,9 +97,10 @@ function createCarMaterials() {
       metalness: 1,
       roughness: 0.18,
     }),
+    // Cool pale cyan-white thruster glow (lit on boost), matching the vapor plumes.
     nozzleGlow: new MeshStandardMaterial({
-      color: 788486,
-      emissive: 16742954,
+      color: 0x0a0d12,
+      emissive: 0xbfefff,
       emissiveIntensity: 0,
       roughness: 0.6,
     }),

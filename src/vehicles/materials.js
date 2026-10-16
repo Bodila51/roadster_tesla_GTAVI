@@ -53,30 +53,32 @@ function vehicleMaterials() {
       });
   return (
     (ke = {
-      blue: e(731758, {
-        metalness: 0.6,
-        roughness: 0.32,
+      // daylight paints: metallic flake under a glossy clear coat
+      blue: e(1129102, {
+        metalness: 0.55,
+        roughness: 0.38,
+        clearcoatRoughness: 0.03,
       }),
-      black: e(328966, {
-        metalness: 0.15,
-        roughness: 0.3,
-        clearcoatRoughness: 0.02,
+      black: e(723983, {
+        metalness: 0.1,
+        roughness: 0.35,
+        clearcoatRoughness: 0.025,
       }),
-      white: e(15856110, {
+      white: e(15461096, {
         metalness: 0,
-        roughness: 0.32,
+        roughness: 0.4,
         clearcoatRoughness: 0.04,
       }),
-      gold: e(13214826, {
-        metalness: 0.95,
-        roughness: 0.3,
+      gold: e(13148010, {
+        metalness: 0.9,
+        roughness: 0.32,
         clearcoat: 1,
-        clearcoatRoughness: 0.06,
+        clearcoatRoughness: 0.05,
       }),
       steel: new MeshPhysicalMaterial({
-        color: 13225168,
+        color: 12963530,
         metalness: 1,
-        roughness: 0.35,
+        roughness: 0.4,
         roughnessMap: a,
         envMapIntensity: 1.1,
       }),
@@ -86,10 +88,13 @@ function vehicleMaterials() {
         roughness: 0.45,
         clearcoat: 0.3,
       }),
+      // dark tinted glass: dielectric, so the sky and horizon show up in it
       glass: new MeshPhysicalMaterial({
-        color: 65795,
-        metalness: 0.6,
-        roughness: 0.05,
+        color: 527379,
+        metalness: 0,
+        roughness: 0.03,
+        clearcoat: 1,
+        clearcoatRoughness: 0.02,
         envMapIntensity: 0.75,
       }),
       trim: new MeshPhysicalMaterial({
@@ -183,17 +188,19 @@ function vehicleMaterials() {
         roughness: 0.08,
         clearcoat: 1,
       }),
-      lightW: s(16777215, 6),
-      lightW2: s(14674175, 3),
-      lightR: s(16716294, 5.5),
-      lightA: s(16747024, 6),
+      // daytime running lights: visible in sun without blooming into flares
+      lightW: s(16777215, 2.6),
+      lightW2: s(14674175, 1.6),
+      lightR: s(16716294, 2.6),
+      lightA: s(16747024, 2.4),
       platform: new MeshPhysicalMaterial({
-        color: 657932,
-        metalness: 0.25,
-        roughness: 0.45,
-        clearcoat: 0.4,
+        color: 1447196,
+        metalness: 0.2,
+        roughness: 0.4,
+        clearcoat: 0.6,
+        clearcoatRoughness: 0.12,
       }),
-      led: s(16718346, 6),
+      led: s(16718346, 3),
     }),
     ke
   );

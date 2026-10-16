@@ -28,7 +28,8 @@ import { buildEnvMap } from "./env-map.js";
 import { buildFloodlight } from "./floodlights.js";
 import { buildGround } from "./ground.js";
 import { WORLD } from "./layout.js";
-import { buildSky } from "./sky.js";
+import { DAY, buildSky, buildTreeLine } from "./sky.js";
+import { bakeStaticShadow } from "./static-shadow.js";
 
 function buildEnvironment(a, e) {
   const s = {
@@ -38,14 +39,16 @@ function buildEnvironment(a, e) {
       spots: [],
     },
     t = new Group();
-  a.add(t), (a.fog = new FogExp2(461584, 0.0028));
+  (t.userData.staticShadow = !0),
+    a.add(t), (a.fog = new FogExp2(16777215, DAY.fogDensity)), a.fog.color.copy(DAY.haze);
   const i = buildSky();
-  a.add(i), (s.sky = i);
+  const tl = buildTreeLine();
+  a.add(i), (s.sky = i), i.add(tl);
   const o = buildGround();
   t.add(o), (s.ground = o);
   const n = new MeshStandardMaterial({
-      color: 14605522,
-      roughness: 0.65,
+      color: 14540247,
+      roughness: 0.72,
       polygonOffset: !0,
       polygonOffsetFactor: -4,
     }),
@@ -75,9 +78,18 @@ function buildEnvironment(a, e) {
   const r = new MeshStandardMaterial({
     color: 2097152,
     emissive: 16717872,
-    emissiveIntensity: 2.2,
+    emissiveIntensity: 3,
     roughness: 0.4,
+    transparent: !0,
   });
+  // In-ground strips are 10 cm wide: past ~50 m they turn into a dotted line,
+  // and in sunlight they would not read from that far anyway, so fade them out.
+  r.onBeforeCompile = (m) => {
+    m.fragmentShader = m.fragmentShader.replace(
+      "#include <dithering_fragment>",
+      "#include <dithering_fragment>\n  gl_FragColor.a *= 1.0 - smoothstep(45.0, 110.0, length(vViewPosition));",
+    );
+  };
   s.ledMat = r;
   const l = (() => {
       const m = document.createElement("canvas");
@@ -109,12 +121,6 @@ function buildEnvironment(a, e) {
   const f = (m, v, x, h = !0) => {
     const u = new Mesh(new BoxGeometry(h ? m : 0.1, 0.04, h ? 0.1 : m), r);
     u.position.set(v, 0.02, x), t.add(u);
-    const T = new Mesh(new PlaneGeometry(0.9, m), d);
-    (T.rotation.x = -Math.PI / 2),
-      h && (T.rotation.z = Math.PI / 2),
-      T.position.set(v, 0.045, x),
-      (T.renderOrder = 2),
-      t.add(T);
   };
   for (const m of [-1, 1]) f(120, m * 7.5, -85, !1);
   for (const m of [-1, 1]) f(75, 57, WORLD.lineup.z + m * 7, !0);
@@ -128,9 +134,9 @@ function buildEnvironment(a, e) {
   {
     const m = xi(),
       v = new MeshStandardMaterial({
-        color: 10133670,
-        metalness: 0.85,
-        roughness: 0.4,
+        color: 11316658,
+        metalness: 0.8,
+        roughness: 0.48,
       }),
       x = [];
     for (let g = -20; g > -140; g -= 2.6)
@@ -217,10 +223,8 @@ function buildEnvironment(a, e) {
     const x = buildFloodlight(
       new Vector3(m.p[0], 0, m.p[1]),
       new Vector3(...m.t),
-      v < 5 || v === 9,
     );
     t.add(x.group),
-      s.spots.push(x.spot),
       s.colliders.push({
         min: new Vector3(m.p[0] - 0.7, 0, m.p[1] - 0.7),
         max: new Vector3(m.p[0] + 0.7, 30, m.p[1] + 0.7),
@@ -229,8 +233,8 @@ function buildEnvironment(a, e) {
   });
   {
     const m = new MeshStandardMaterial({
-        color: 2760728,
-        roughness: 0.9,
+        color: 6050373,
+        roughness: 0.92,
       }),
       v = [];
     for (let h = 20; h <= 220; h += 50) {
@@ -248,7 +252,7 @@ function buildEnvironment(a, e) {
         });
     }
     const x = new LineBasicMaterial({
-      color: 657930,
+      color: 2368548,
     });
     for (const h of [-1.4, 0, 1.4]) {
       const u = [];
@@ -271,8 +275,8 @@ function buildEnvironment(a, e) {
   }
   s.blinkers = [];
   const w = new MeshStandardMaterial({
-      color: 790291,
-      roughness: 0.9,
+      color: 7239547,
+      roughness: 0.8,
       metalness: 0.2,
     }),
     S = (m, v, x) => {
@@ -280,7 +284,6 @@ function buildEnvironment(a, e) {
         new SphereGeometry(1.4, 10, 8),
         new MeshBasicMaterial({
           color: 16722474,
-          fog: !1,
         }),
       );
       h.position.set(m, v, x), t.add(h), s.blinkers.push(h);
@@ -296,9 +299,9 @@ function buildEnvironment(a, e) {
     const x = new Mesh(
       new CylinderGeometry(4.5, 4.5, 70, 24),
       new MeshStandardMaterial({
-        color: 4212304,
+        color: 13421514,
         metalness: 0.9,
-        roughness: 0.35,
+        roughness: 0.3,
       }),
     );
     x.position.set(-22, 55, 0), m.add(x);
@@ -324,8 +327,13 @@ function buildEnvironment(a, e) {
       }),
       S(-520, 147, -1100),
       S(-542, 92, -1100);
+    const tk = new MeshStandardMaterial({
+      color: 12105911,
+      roughness: 0.6,
+      metalness: 0.1,
+    });
     for (let g = 0; g < 6; g++) {
-      const D = new Mesh(new CylinderGeometry(5, 5, 26 + (g % 3) * 8, 20), w);
+      const D = new Mesh(new CylinderGeometry(5, 5, 26 + (g % 3) * 8, 20), tk);
       D.position.set(-380 + g * 13, 13 + (g % 3) * 4, -980), t.add(D);
       const P = 26 + (g % 3) * 8;
       s.colliders.push({
@@ -334,8 +342,17 @@ function buildEnvironment(a, e) {
         name: "tank",
       });
     }
+    const hg = new MeshStandardMaterial({
+        color: 9409425,
+        roughness: 0.7,
+        metalness: 0.25,
+      }),
+      dr = new MeshStandardMaterial({
+        color: 1250326,
+        roughness: 0.9,
+      });
     for (let g = 0; g < 4; g++) {
-      const D = new Mesh(new BoxGeometry(60, 22, 40), w);
+      const D = new Mesh(new BoxGeometry(60, 22, 40), hg);
       D.position.set(380 + g * 75, 11, -640 - g * 20),
         t.add(D),
         s.colliders.push({
@@ -348,15 +365,7 @@ function buildEnvironment(a, e) {
           max: new Vector3(410 + g * 75, 22, -620 - g * 20),
           name: "hangar",
         });
-      const P = new Mesh(
-        new PlaneGeometry(48, 2.4),
-        new MeshBasicMaterial({
-          color: 16767392,
-          fog: !1,
-          transparent: !0,
-          opacity: 0.55,
-        }),
-      );
+      const P = new Mesh(new PlaneGeometry(48, 2.4), dr);
       P.position.set(380 + g * 75, 15, -640 - g * 20 + 20.1),
         t.add(P),
         S(380 + g * 75, 23, -640 - g * 20);
@@ -364,7 +373,7 @@ function buildEnvironment(a, e) {
     const u = new Group(),
       T = new Mesh(new CylinderGeometry(1.2, 2.2, 30, 8), w);
     (T.position.y = 15), u.add(T);
-    const z = new Mesh(new SphereGeometry(8, 16, 12), w);
+    const z = new Mesh(new SphereGeometry(8, 16, 12), tk);
     (z.position.y = 34),
       u.add(z),
       u.position.set(700, 0, 300),
@@ -381,47 +390,74 @@ function buildEnvironment(a, e) {
       }),
       S(700, 43, 300);
   }
-  const y = new DirectionalLight(10467583, 0.55);
-  y.position.set(-60, 120, 40),
+  // the sun: one shadow-casting DirectionalLight whose tight shadow box follows the player and
+  // leans towards where the camera looks
+  const y = new DirectionalLight(16777215, DAY.sunIntensity);
+  y.color.copy(DAY.sunColor),
     (y.castShadow = !0),
     y.shadow.mapSize.set(2048, 2048);
-  const b = y.shadow.camera;
-  (b.left = -40),
-    (b.right = 40),
-    (b.top = 40),
-    (b.bottom = -40),
+  const b = y.shadow.camera,
+    sh = 38;
+  (b.left = -sh),
+    (b.right = sh),
+    (b.top = sh),
+    (b.bottom = -sh),
     (b.near = 1),
-    (b.far = 400),
-    (y.shadow.bias = -4e-4),
-    (y.shadow.normalBias = 0.03),
+    (b.far = DAY.shadowFar),
+    (y.shadow.bias = -2e-4),
+    (y.shadow.normalBias = 0.035),
     a.add(y),
     a.add(y.target),
+    (s.sun = y),
     (s.moon = y);
-  const L = new HemisphereLight(2306634, 657414, 0.18);
-  return (
+  // sky fill on top of the image based light from the sky probe
+  const L = new HemisphereLight(16777215, 16777215, DAY.hemiIntensity);
+  L.color.copy(DAY.hemiSky),
+    L.groundColor.copy(DAY.hemiGround),
     a.add(L),
+    (s.hemi = L);
+  // remember the camera the scene is drawn with, so the shadow box can lean ahead of it
+  const C = a.onBeforeRender;
+  a.onBeforeRender = function (m, v, x, h) {
+    x && x.isPerspectiveCamera && (s.camera = x), C.call(this, m, v, x, h);
+  };
+  const sd = DAY.sunDir.clone().multiplyScalar(DAY.shadowDist),
+    sz = sd.clone().normalize(),
+    sx = new Vector3().crossVectors(new Vector3(0, 1, 0), sz).normalize(),
+    sy = new Vector3().crossVectors(sz, sx),
+    fw = new Vector3(),
+    ce = new Vector3();
+  return (
     (s.envMap = buildEnvMap(e)),
     (a.environment = s.envMap),
-    (a.environmentIntensity = 0.9),
+    (a.environmentIntensity = DAY.envIntensity),
     (s.update = (m, v, x) => {
+      // first frame: everything is in the scene now, bake the far ground shadows once
+      s.baked ||
+        ((s.baked = !0),
+        bakeStaticShadow(e, a, DAY.sunDir, y.shadow.mapSize.x > 1024 ? 2048 : 1024));
       if (x) {
-        const u = new Vector3(-60, 120, 40),
-          T = u.clone().normalize(),
-          z = new Vector3().crossVectors(new Vector3(0, 1, 0), T).normalize(),
-          g = new Vector3().crossVectors(T, z),
-          D = (b.right - b.left) / y.shadow.mapSize.x,
-          P = x.dot(z),
-          k = x.dot(g),
-          R = x
-            .clone()
-            .addScaledVector(z, Math.round(P / D) * D - P)
-            .addScaledVector(g, Math.round(k / D) * D - k);
-        y.target.position.copy(R), y.position.copy(R).add(u);
+        ce.copy(x);
+        const u = s.camera;
+        u &&
+          (u.getWorldDirection(fw),
+          (fw.y = 0),
+          fw.lengthSq() > 1e-4 &&
+            ce.addScaledVector(fw.normalize(), sh * 0.45));
+        const D = (b.right - b.left) / y.shadow.mapSize.x,
+          P = ce.dot(sx),
+          k = ce.dot(sy);
+        ce.addScaledVector(sx, Math.round(P / D) * D - P).addScaledVector(
+          sy,
+          Math.round(k / D) * D - k,
+        ),
+          y.target.position.copy(ce),
+          y.position.copy(ce).add(sd);
       }
       const h = Math.pow(Math.max(0, Math.sin(v * 2.4)), 3);
       for (const u of s.blinkers)
-        u.material.color.setRGB(0.15 + 2.4 * h, 0.02 + 0.3 * h, 0.02 + 0.3 * h);
-      i.position.copy(x || i.position).setY(0);
+        u.material.color.setRGB(0.15 + 3 * h, 0.02 + 0.3 * h, 0.02 + 0.3 * h);
+      i.position.copy(x || i.position).setY(0), tl.userData.setCenter(i.position);
     }),
     s
   );

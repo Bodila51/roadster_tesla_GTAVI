@@ -21,10 +21,10 @@ class TouchControls {
         <button class="t-btn t-drift" data-k="drift"><b>DRIFT</b><i>spin</i></button>
       </div>
       <div class="t-top">
-        <button class="t-mini" data-act="missions">GOALS</button>
-        <button class="t-mini" data-act="cam">CAM</button>
-        <button class="t-mini" data-act="reset">RESET</button>
-        <button class="t-mini" data-act="pause">❚❚</button>
+        <button class="t-mini t-pause" data-act="pause" aria-label="Pause"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M4.5 2v10M9.5 2v10"/></svg></button>
+        <button class="t-mini" data-act="missions" aria-label="Goals"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3 13V1.5h8.5l-2 3 2 3H3"/></svg><span>GOALS</span></button>
+        <button class="t-mini" data-act="cam" aria-label="Camera"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M1.5 4.5h3l1-2h3l1 2h3v7.5h-11z"/><circle cx="7" cy="8.2" r="2.1"/></svg><span>CAM</span></button>
+        <button class="t-mini" data-act="reset" aria-label="Reset car"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M11.6 7.2A4.6 4.6 0 1 1 10 3.6"/><path d="M10.9 1v3.2H7.7"/></svg><span>RESET</span></button>
       </div>`),
       e.appendChild(this.el),
       (this.stick = this.el.querySelector("#t-stick")),

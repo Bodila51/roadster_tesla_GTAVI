@@ -34,7 +34,7 @@ import {
 } from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { RectAreaLightUniformsLib } from "three/addons/lights/RectAreaLightUniformsLib.js";
-import { buildRoadster } from "./car/roadster.js";
+import { buildRoadster, loadRoadster } from "./car/roadster.js";
 import { ThrusterPlumes } from "./fx/plumes.js";
 
 RectAreaLightUniformsLib.init();
@@ -140,6 +140,7 @@ Object.assign(S.shadow.camera, {
 S.shadow.radius = 6;
 d.add(S);
 d.add(new HemisphereLight(8425632, 1052688, 0.25));
+await loadRoadster(); // GLB car if public/models/roadster.glb exists
 const c = buildRoadster();
 d.add(c.root);
 c.wing.visible = !1;

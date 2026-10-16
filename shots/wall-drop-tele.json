@@ -1,0 +1,23 @@
+{
+  "name": "wall-drop-tele",
+  "notes": "Telephoto from about 100 m off the wall's front corner: the car climbs the reveal wall braking, leaves the lip upside down at 20 mph and drops. 0.4x through the moment it hangs at the lip, then real time as it falls. The in-point is anchored on leaving the wall.",
+  "size": [1920, 1080],
+  "fps": 30,
+  "duration": 3,
+  "blur": { "samples": 8, "shutter": 0.5 },
+  "take": {
+    "start": { "pos": [0, 0, -118], "yaw": 180, "speed": 24 },
+    "input": [[0, ""], [1.0, "KeyW"], [1.85, "KeyS"], [2.6, ""]]
+  },
+  "in": "rampExit(wall)-0.6",
+  "time": [[0, 1], [0.4, 1], [0.7, 0.4, "inOut"], [1.5, 0.4], [1.9, 1, "inOut"]],
+  "camera": {
+    "rig": "telephoto",
+    "pos": [68, 2.5, -92],
+    "frame": [[0, 9], [1.4, 8.5], [3, 13]],
+    "lookFollow": 0.12,
+    "lookOffset": [0, 0.3, 0],
+    "shake": { "amp": 0.02, "freq": 0.6 }
+  },
+  "dof": { "focus": "car", "range": 6, "bokeh": 6 }
+}

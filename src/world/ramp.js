@@ -51,6 +51,7 @@ class ProfileRamp {
       (this.sideSolid = w),
       this._buildProfile(),
       (this.group = new Group()),
+      (this.group.userData.staticShadow = !0),
       d && (this._buildMesh(), this._buildTruss(), this._buildDressing());
   }
   static kappa(e) {
@@ -215,10 +216,10 @@ class ProfileRamp {
         map: p.map,
         roughnessMap: p.rough,
         bumpMap: p.bump,
-        bumpScale: 1.2,
+        bumpScale: 0.8,
         roughness: 1,
         metalness: 0,
-        color: 13619147,
+        color: 15263459,
         side: DoubleSide,
       }),
       S = new Mesh(f, w);
@@ -244,9 +245,9 @@ class ProfileRamp {
       L.setIndex(b),
       L.computeVertexNormals();
     const m = new MeshStandardMaterial({
-        color: 3882304,
-        roughness: 0.8,
-        metalness: 0.4,
+        color: 9079947,
+        roughness: 0.92,
+        metalness: 0,
         side: DoubleSide,
       }),
       v = new Mesh(L, m);
@@ -271,7 +272,7 @@ class ProfileRamp {
       const g = new Mesh(
         z,
         new MeshStandardMaterial({
-          color: 10132118,
+          color: 11053733,
           roughness: 0.9,
           side: DoubleSide,
         }),
@@ -281,7 +282,7 @@ class ProfileRamp {
     const x = new MeshStandardMaterial({
       color: 2228224,
       emissive: 16716840,
-      emissiveIntensity: 6,
+      emissiveIntensity: 3.2,
       roughness: 0.4,
     });
     this.ledMat = x;
@@ -320,9 +321,9 @@ class ProfileRamp {
   }
   _buildTruss() {
     const e = new MeshStandardMaterial({
-        color: 9146261,
-        metalness: 0.9,
-        roughness: 0.35,
+        color: 2516656,
+        metalness: 0.25,
+        roughness: 0.42,
       }),
       s = [],
       t = (x, h, u = 0.06) => s.push([x.clone(), h.clone(), u]),
@@ -436,9 +437,11 @@ class ProfileRamp {
       const i = new Mesh(
         new CircleGeometry(0.16, 16),
         new MeshStandardMaterial({
-          color: 16777215,
+          color: 13421772,
           emissive: 12574975,
-          emissiveIntensity: 6,
+          emissiveIntensity: 0.3,
+          roughness: 0.2,
+          metalness: 0.5,
         }),
       );
       i.position.copy(t.position),

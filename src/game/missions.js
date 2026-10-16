@@ -2,7 +2,7 @@ const MISSIONS = [
     {
       id: "launch",
       name: "LAUNCH",
-      desc: "0–60 mph in under 1.0 s — hold Shift + W from a standstill",
+      desc: "0–60 mph in under 1.0 s: hold Shift + W from a standstill",
     },
     {
       id: "wall",
@@ -17,7 +17,7 @@ const MISSIONS = [
     {
       id: "lineup",
       name: "CLEAR THE LINEUP",
-      desc: "Fly over all five vehicles in one jump",
+      desc: "Fly over all five vehicles in one jump, close to the roofs",
     },
     {
       id: "semiflip",
@@ -27,7 +27,7 @@ const MISSIONS = [
     {
       id: "double",
       name: "DOUBLE KICKFLIP",
-      desc: "Two barrel rolls in a single jump",
+      desc: "Land two barrel rolls in a single jump",
     },
     {
       id: "hang",
@@ -37,7 +37,7 @@ const MISSIONS = [
     {
       id: "vmax",
       name: "230 MPH",
-      desc: "Hit top speed on the runway",
+      desc: "Hit 230 mph on the runway: build speed, then hold Shift",
     },
     {
       id: "rings",
@@ -62,7 +62,7 @@ const MISSIONS = [
     {
       id: "loop",
       name: "LOOP THE LOOP",
-      desc: "Drive the full 360° loop — the fans hold you upside down",
+      desc: "Drive the full 360° loop: the fans hold you upside down",
     },
     {
       id: "bullseye",

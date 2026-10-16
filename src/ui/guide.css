@@ -1,0 +1,79 @@
+/* Shared tokens for the guide UI (minimap, arrow, tutorial, replay, clip).
+   They map onto the HUD design tokens on :root (docs/DESIGN.md in the ui branch);
+   the fallbacks only matter when those tokens are missing. */
+[data-rd] {
+  --rd-fg: var(--fg, #ffffff);
+  --rd-fg-2: var(--fg-2, rgba(255, 255, 255, 0.72));
+  --rd-fg-3: var(--fg-3, rgba(255, 255, 255, 0.48));
+  --rd-ink: var(--ink, #0b0e13);
+  --rd-ink-2: var(--ink-2, #151a22);
+  --rd-ink-3: var(--ink-3, #222a35);
+  --rd-plate: var(--plate, rgba(11, 14, 19, 0.84));
+  --rd-plate-hi: var(--plate-hi, rgba(11, 14, 19, 0.93));
+  --rd-hair: var(--hair, rgba(255, 255, 255, 0.13));
+  --rd-hair-2: var(--hair-2, rgba(255, 255, 255, 0.3));
+  --rd-accent: var(--accent, #ff5a1f);
+  --rd-accent-hi: var(--accent-hi, #ff7a45);
+  --rd-on-accent: var(--on-accent, #0b0e13);
+  --rd-good: var(--good, #2fe08a);
+  --rd-bad: var(--bad, #ff3b4e);
+  --rd-air: var(--air, #e8f3ff);
+  /* radar only: GTA-style blip and map colours */
+  --rd-mission: #ffd23f;
+  --rd-sea: #2a6eaa;
+  --rd-sand: #cdb478;
+  --rd-font: var(--ui, "Archivo", "Helvetica Neue", Arial, sans-serif);
+  --rd-display: var(--display, "Big Shoulders Display", "Arial Narrow", Impact, sans-serif);
+  --rd-stretch: var(--num-stretch, 62%);
+  --rd-track: var(--track-caps, 0.14em);
+  --rd-cut: var(--cut, 10px);
+  --rd-cut-s: var(--cut-s, 7px);
+  --rd-tab: var(--tab, 3px);
+  --rd-snap: var(--snap, cubic-bezier(0.2, 0.85, 0.25, 1));
+  --rd-touch: var(--touch-min, 44px);
+  --rd-et: var(--edge-t, max(20px, env(safe-area-inset-top)));
+  --rd-er: var(--edge-r, max(20px, env(safe-area-inset-right)));
+  --rd-eb: var(--edge-b, max(20px, env(safe-area-inset-bottom)));
+  --rd-el: var(--edge-l, max(20px, env(safe-area-inset-left)));
+  /* where the speed dash sits (set on #hud by the HUD stylesheet) */
+  --rd-dash-top: calc(var(--dash-b, var(--rd-eb)) + var(--dash-h, 96px));
+  font-family: var(--rd-font);
+  color: var(--rd-fg);
+  -webkit-tap-highlight-color: transparent;
+}
+body.touch [data-rd] {
+  --rd-et: var(--edge-t, max(10px, env(safe-area-inset-top)));
+  --rd-er: var(--edge-r, max(12px, env(safe-area-inset-right)));
+  --rd-eb: var(--edge-b, max(8px, env(safe-area-inset-bottom)));
+  --rd-el: var(--edge-l, max(12px, env(safe-area-inset-left)));
+  --rd-dash-top: calc(var(--dash-b, max(6px, env(safe-area-inset-bottom))) + var(--dash-h, 62px));
+}
+.rd-cut {
+  clip-path: polygon(
+    0 0,
+    calc(100% - var(--rd-cut)) 0,
+    100% var(--rd-cut),
+    100% 100%,
+    var(--rd-cut) 100%,
+    0 calc(100% - var(--rd-cut))
+  );
+}
+.rd-key {
+  display: inline-block;
+  min-width: 20px;
+  padding: 3px 5px 2px;
+  font: 800 10px/1 var(--rd-font);
+  letter-spacing: 0.04em;
+  text-align: center;
+  white-space: nowrap;
+  vertical-align: 1px;
+  color: var(--rd-fg);
+  background: var(--rd-ink-3);
+  border: 1px solid var(--rd-hair-2);
+  border-bottom-width: 2px;
+}
+/* the guide UI stays off in capture modes */
+body.cine [data-rd],
+body.og [data-rd] {
+  display: none !important;
+}

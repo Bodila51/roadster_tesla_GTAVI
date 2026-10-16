@@ -23,6 +23,16 @@ const GRAVITY = 9.81,
     rollRate: 7.6,
     pitchRate: 5.4,
     yawRate: 4.4,
+    // Ground-only top-end boost: the rear thrust gains efficiency at speed, fading in
+    // from boostTopFrom to boostTopTo m/s. A full tank used near top speed reaches
+    // 230 mph on the runway; W+Shift held from a standstill peaks near 197 mph.
+    boostTop: 3.5,
+    boostTopFrom: 60,
+    boostTopTo: 72,
+    // Air rotation authority fades out over the last rcsFade units of gas. At zero gas
+    // the player cannot add rotation and spin only bleeds off at rcsAeroDamp per s.
+    rcsFade: 12,
+    rcsAeroDamp: 0.1,
   };
 class CarPhysics {
   constructor({ ramp: e, ramps: s, colliders: t = [], surfaces: i = [] }) {
@@ -118,6 +128,22 @@ class CarPhysics {
       TUNING.boostBase + TUNING.boostLaunch * Math.max(0, 1 - Math.abs(e) / 40)
     );
   }
+  // Extra ground boost near top speed (only while the boost actually fired this substep).
+  boostTopEnd(e) {
+    if (!this.thrust.boost || e <= TUNING.boostTopFrom) return 0;
+    return (
+      TUNING.boostTop *
+      Math.min(
+        1,
+        (e - TUNING.boostTopFrom) / (TUNING.boostTopTo - TUNING.boostTopFrom),
+      )
+    );
+  }
+  // 0..1: how much rotation control the RCS has left (smooth fade near an empty tank).
+  get rcsAuthority() {
+    const x = Math.min(1, Math.max(0, this.gas / TUNING.rcsFade));
+    return x * x * (3 - 2 * x);
+  }
   emit(e, s = {}) {
     this.events.push({
       type: e,
@@ -189,7 +215,7 @@ class CarPhysics {
       (this.yaw += this.steerUpdate(e, s, o) * e),
       c
         ? ((this.yaw += this.steer * 2.2 * e), (o *= Math.exp(-6 * e)))
-        : (o += this.longAccel(e, s, o) * e),
+        : (o += (this.longAccel(e, s, o) + this.boostTopEnd(o)) * e),
       s.drift && (o -= Math.sign(o) * 1.2 * e),
       (o = Math.max(-14, o));
     const r = s.drift ? 1.5 : Math.max(5, 12 - Math.abs(o) / 14);
@@ -477,16 +503,27 @@ class CarPhysics {
       ),
       c = Math.abs(n.x) + Math.abs(n.y) + Math.abs(n.z) > 0.01;
     c ? (this.lastInputT = 0) : (this.lastInputT += e);
+    // Rotation needs gas: input response and the release damping both scale with the
+    // RCS authority, so at zero gas the spin simply carries on (momentum continues).
+    const k = this.rcsAuthority;
     for (const S of ["x", "y", "z"]) {
-      const b = Math.abs(n[S]) > 0.01 ? 7.5 : 2.2;
-      this.angVel[S] += (n[S] - this.angVel[S]) * Math.min(1, e * b);
+      const held = Math.abs(n[S]) > 0.01,
+        b = held ? 7.5 * k : 2.2 * k + TUNING.rcsAeroDamp * (1 - k);
+      this.angVel[S] += ((held ? n[S] * k : 0) - this.angVel[S]) * Math.min(1, e * b);
     }
     c &&
       this.gas > 0 &&
-      ((this.gas -= TUNING.gasRcs * e), (this.thrust.rcs = 1));
+      ((this.gas -= TUNING.gasRcs * e), (this.thrust.rcs = k));
     const r = this.surfaceAt(this.pos.x, this.pos.z, this.pos.y + 0.5).h,
       l = this.pos.y - r;
-    if (!c && this.lastInputT > 0.25 && this.vel.y < 1 && l < 7 && i.y > -0.1) {
+    if (
+      !c &&
+      k > 0 &&
+      this.lastInputT > 0.25 &&
+      this.vel.y < 1 &&
+      l < 7 &&
+      i.y > -0.1
+    ) {
       const S = o.clone();
       S.y = 0;
       let y =
@@ -495,10 +532,10 @@ class CarPhysics {
           : Math.atan2(this.vel.x, this.vel.z);
       i.y < 0;
       const b = new Quaternion().setFromAxisAngle(UP, y),
-        L = 1 - Math.exp(-e * (i.y > 0.2 ? 2.4 : 1.4));
+        L = 1 - Math.exp(-e * (i.y > 0.2 ? 2.4 : 1.4) * k);
       t.slerp(b, L),
-        this.angVel.multiplyScalar(Math.exp(-e * 2)),
-        (this.thrust.rcs = Math.max(this.thrust.rcs, 0.5));
+        this.angVel.multiplyScalar(Math.exp(-e * 2 * k)),
+        (this.thrust.rcs = Math.max(this.thrust.rcs, 0.5 * k));
     }
     const d = this.angVel,
       f = d.length() * e;

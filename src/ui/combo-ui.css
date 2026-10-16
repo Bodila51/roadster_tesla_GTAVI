@@ -1,0 +1,170 @@
+/* Combo meter and landing grade (rules module).
+   HUD design tokens from docs/DESIGN.md; the fallbacks only matter when the
+   token sheet is missing. Zones: the meter sits in the centre band under the
+   HUD combo plate (#center); the grade uses the crash-call slot of the band,
+   since a landing grade and a crash never happen together. */
+.rd-combo,
+.rd-grade {
+  --rd-plate: var(--plate, rgba(11, 14, 19, 0.84));
+  --rd-plate-hi: var(--plate-hi, rgba(11, 14, 19, 0.93));
+  --rd-hair: var(--hair, rgba(255, 255, 255, 0.13));
+  --rd-fg: var(--fg, #ffffff);
+  --rd-accent: var(--accent, #ff5a1f);
+  --rd-on-accent: var(--on-accent, #0b0e13);
+  --rd-good: var(--good, #2fe08a);
+  --rd-bad: var(--bad, #ff3b4e);
+  --rd-display: var(
+    --display,
+    "Big Shoulders Display",
+    "Arial Narrow",
+    Impact,
+    sans-serif
+  );
+  --rd-ui: var(--ui, "Archivo", "Helvetica Neue", Arial, sans-serif);
+  --rd-num-stretch: var(--num-stretch, 62%);
+  --rd-fs-label: var(--fs-label, 10.5px);
+  --rd-fs-disp-m: var(--fs-disp-m, 44px);
+  --rd-track-caps: var(--track-caps, 0.14em);
+  --rd-cut: var(--cut, 10px);
+  --rd-cut-s: var(--cut-s, 7px);
+  pointer-events: none;
+}
+
+/* ── Combo meter: count chip + ground grace bar ──────────────────────────── */
+.rd-combo {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  margin-top: 5px;
+}
+.rd-combo.on {
+  display: flex;
+}
+.rd-c-n {
+  padding: 3px 6px 2px;
+  font: 800 var(--rd-fs-label) / 1 var(--rd-ui);
+  letter-spacing: var(--rd-track-caps);
+  color: var(--rd-fg);
+  background: var(--rd-plate-hi);
+}
+.rd-c-bar {
+  display: block;
+  width: 96px;
+  height: 5px;
+  background: var(--rd-plate);
+  box-shadow: inset 0 0 0 1px var(--rd-hair);
+}
+.rd-c-fill {
+  display: block;
+  height: 100%;
+  background: var(--rd-accent);
+  transform-origin: left center;
+}
+.rd-combo.rd-solo {
+  position: fixed;
+  top: 28%;
+  left: 50%;
+  transform: translate(-50%);
+}
+
+/* ── Landing grade ───────────────────────────────────────────────────────── */
+.rd-grade {
+  position: fixed;
+  top: 40%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+.rd-g-in {
+  display: flex;
+  align-items: stretch;
+  opacity: 0;
+}
+.rd-grade.on .rd-g-in {
+  animation: rd-grade 1.3s ease-out forwards;
+}
+.rd-g-in > span {
+  --c: var(--rd-cut);
+  clip-path: polygon(
+    0 0,
+    calc(100% - var(--c)) 0,
+    100% var(--c),
+    100% 100%,
+    var(--c) 100%,
+    0 calc(100% - var(--c))
+  );
+}
+.rd-g-w {
+  padding: 7px 16px 2px 18px;
+  font: 900 var(--rd-fs-disp-m) / 0.92 var(--rd-display);
+  letter-spacing: 0.02em;
+  color: var(--rd-fg);
+  background: var(--rd-plate-hi);
+}
+.rd-g-in > .rd-g-m,
+.rd-g-in > .rd-g-p {
+  --c: var(--rd-cut-s);
+  display: flex;
+  align-items: center;
+  margin-left: 3px;
+  padding: 0 11px;
+  font: 800 20px/1 var(--rd-ui);
+  font-stretch: var(--rd-num-stretch);
+  font-variant-numeric: tabular-nums;
+  color: var(--rd-fg);
+  background: var(--rd-plate-hi);
+}
+.rd-g-perfect .rd-g-w,
+.rd-g-perfect .rd-g-m {
+  color: var(--rd-on-accent);
+  background: var(--rd-good);
+}
+.rd-g-sloppy .rd-g-m {
+  background: var(--rd-bad);
+}
+.rd-g-p {
+  color: var(--rd-good);
+}
+body.touch .rd-grade {
+  top: 37%;
+  transform: translate(-50%, -50%) scale(0.75);
+}
+@media (orientation: portrait) and (max-width: 600px) {
+  .rd-grade,
+  body.touch .rd-grade {
+    top: 41%;
+    transform: translate(-50%, -50%) scale(0.72);
+  }
+}
+@keyframes rd-grade {
+  0% {
+    opacity: 0;
+    transform: scale(1.25);
+  }
+  12% {
+    opacity: 1;
+    transform: none;
+  }
+  75% {
+    opacity: 1;
+    transform: none;
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rd-grade.on .rd-g-in {
+    animation: rd-grade-plain 1.3s linear forwards;
+  }
+  @keyframes rd-grade-plain {
+    0%,
+    80% {
+      opacity: 1;
+    }
+    to {
+      opacity: 0;
+    }
+  }
+}

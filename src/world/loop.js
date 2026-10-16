@@ -109,11 +109,11 @@ class Loop extends ProfileRamp {
       f,
       new MeshPhysicalMaterial({
         map: makeStripeTexture(),
-        color: 15131871,
-        roughness: 0.38,
-        metalness: 0.05,
-        clearcoat: 0.6,
-        clearcoatRoughness: 0.2,
+        color: 15132385,
+        roughness: 0.45,
+        metalness: 0,
+        clearcoat: 0.5,
+        clearcoatRoughness: 0.25,
         side: FrontSide,
       }),
     );
@@ -141,9 +141,9 @@ class Loop extends ProfileRamp {
       L.setIndex(S),
       L.computeVertexNormals();
     const m = new MeshStandardMaterial({
-      color: 1316378,
+      color: 8423572,
       roughness: 0.5,
-      metalness: 0.6,
+      metalness: 0.4,
       side: DoubleSide,
     });
     e.add(new Mesh(L, m));
@@ -160,7 +160,7 @@ class Loop extends ProfileRamp {
     const v = new MeshStandardMaterial({
       color: 2228224,
       emissive: 16717872,
-      emissiveIntensity: 4,
+      emissiveIntensity: 3,
     });
     for (const k of [-1, 1]) {
       const R = [];
@@ -180,9 +180,9 @@ class Loop extends ProfileRamp {
       u = this.normal(x),
       T = h.clone().addScaledVector(u, Ct),
       z = new MeshStandardMaterial({
-        color: 10133928,
-        metalness: 0.9,
-        roughness: 0.35,
+        color: 10922928,
+        metalness: 0.8,
+        roughness: 0.45,
       }),
       g = [];
     for (const k of [-1, 1]) {
@@ -199,7 +199,7 @@ class Loop extends ProfileRamp {
         new MeshStandardMaterial({
           color: 2228224,
           emissive: 16717872,
-          emissiveIntensity: 5,
+          emissiveIntensity: 3,
         }),
       );
       C.position.copy(R).addScaledVector(this.r, k * 0.42),

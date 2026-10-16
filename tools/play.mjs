@@ -20,7 +20,7 @@ const logs = [];
 page.on('console', m => { if (['error', 'warning'].includes(m.type())) logs.push(m.type() + ': ' + m.text().slice(0, 300)); });
 page.on('pageerror', e => logs.push('pageerror: ' + e.message));
 page.on('requestfailed', r => logs.push('requestfailed: ' + r.url()));
-await page.goto(`http://127.0.0.1:${port}/${args.page || 'index.html'}`, { waitUntil: 'load' });
+await page.goto(`http://127.0.0.1:${port}/${args.page || 'index.html'}`, { waitUntil: 'load', timeout: 180000 });
 await page.waitForTimeout(Number(args.wait || 6000));
 if ((args.page || 'index.html') === 'index.html' && !args.title) {
   await page.evaluate(() => window.__rd && window.__rd.startGame());

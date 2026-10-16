@@ -11,11 +11,13 @@ import {
   MeshStandardMaterial,
   SRGBColorSpace,
   ShaderMaterial,
-  SpotLight,
   Sprite,
   SpriteMaterial,
 } from "three";
+import { mergeGeometries } from "../util/math.js";
+import { DAY } from "./sky.js";
 
+// Kept for the per-frame uniform update in main.js; daytime builds no beams.
 const beamMaterial = new ShaderMaterial({
   transparent: !0,
   depthWrite: !1,
@@ -77,66 +79,93 @@ function glowTexture() {
     le
   );
 }
-function buildFloodlight(a, e, s) {
+let Ve = null;
+function towerMaterials() {
+  return (
+    Ve ||
+    (Ve = {
+      // galvanised steel pole and housing
+      steel: new MeshStandardMaterial({
+        color: 10265266,
+        metalness: 0.85,
+        roughness: 0.5,
+      }),
+      housing: new MeshStandardMaterial({
+        color: 3292727,
+        metalness: 0.6,
+        roughness: 0.55,
+      }),
+      // by day the lamps are off: clear glass over a reflector, it just catches the sky;
+      // at golden hour (?tod=golden) they are switched on
+      lens: DAY.floodlights
+        ? new MeshStandardMaterial({
+            color: 16777215,
+            emissive: new Color(1, 0.93, 0.82),
+            emissiveIntensity: 7,
+            roughness: 0.3,
+          })
+        : new MeshStandardMaterial({
+            color: 14082794,
+            metalness: 0.9,
+            roughness: 0.18,
+          }),
+      glow: DAY.floodlights
+        ? new SpriteMaterial({
+            map: glowTexture(),
+            color: new Color(1.3, 1.18, 1.0),
+            transparent: !0,
+            blending: AdditiveBlending,
+            depthWrite: !1,
+            fog: !1,
+          })
+        : null,
+    })
+  );
+}
+// the twelve lamp faces of one head merged into a single draw call
+let Le = null;
+function lampFaces() {
+  if (Le) return Le;
+  const a = [];
+  for (let y = 0; y < 4; y++)
+    for (let b = 0; b < 3; b++)
+      a.push(
+        new CircleGeometry(0.32, 20).translate(
+          -1.35 + y * 0.9,
+          -0.8 + b * 0.8,
+          0.16,
+        ),
+      );
+  return (Le = mergeGeometries(a));
+}
+// Stadium light tower: pole, frame and twelve lamp faces; lamps off by day, on at golden hour.
+// Same footprint as the night version (the pole collider is added by environment.js). No
+// SpotLight or beam.
+function buildFloodlight(a, e) {
   const t = new Group(),
-    i = new MeshStandardMaterial({
-      color: 5593439,
-      metalness: 0.8,
-      roughness: 0.45,
-    }),
+    i = towerMaterials(),
     o = 22,
-    n = new Mesh(new CylinderGeometry(0.22, 0.4, o, 10), i);
+    n = new Mesh(new CylinderGeometry(0.22, 0.4, o, 10), i.steel);
   n.position.set(a.x, o / 2, a.z), (n.castShadow = !0), t.add(n);
   const c = new Group();
   c.position.set(a.x, o + 0.8, a.z);
-  const r = new Mesh(new BoxGeometry(3.6, 2.4, 0.3), i);
-  c.add(r);
-  const l = new MeshStandardMaterial({
-    color: 16777215,
-    emissive: 15267071,
-    emissiveIntensity: 6,
-  });
-  for (let y = 0; y < 4; y++)
-    for (let b = 0; b < 3; b++) {
-      const L = new Mesh(new CircleGeometry(0.32, 20), l);
-      L.position.set(-1.35 + y * 0.9, -0.8 + b * 0.8, 0.16), c.add(L);
-    }
-  c.lookAt(e), t.add(c);
-  const d = new Sprite(
-    new SpriteMaterial({
-      map: glowTexture(),
-      color: new Color(1.6, 1.8, 2),
-      transparent: !0,
-      blending: AdditiveBlending,
-      depthWrite: !1,
-    }),
-  );
-  d.scale.set(9, 9, 1), d.position.copy(c.position), t.add(d);
-  const f = new SpotLight(14676223, 9e3, 220, 0.42, 0.55, 2);
-  f.position.copy(c.position),
-    f.target.position.copy(e),
-    s &&
-      ((f.castShadow = !0),
-      f.shadow.mapSize.set(1024, 1024),
-      (f.shadow.bias = -3e-4),
-      (f.shadow.camera.near = 2),
-      (f.shadow.camera.far = 220)),
-    t.add(f),
-    t.add(f.target);
-  const p = Math.min(110, c.position.distanceTo(e) * 1.3),
-    w = new CylinderGeometry(0.9, Math.tan(0.42) * p, p, 40, 1, !0);
-  w.translate(0, -p / 2, 0), w.rotateX(-Math.PI / 2);
-  const S = new Mesh(w, beamMaterial);
+  const r = new Mesh(new BoxGeometry(3.6, 2.4, 0.3), i.housing);
+  (r.castShadow = !0), c.add(r);
+  c.add(new Mesh(lampFaces(), i.lens));
+  if (i.glow) {
+    // lit head: a soft halo around the lamp bank, a little in front of it
+    const g = new Sprite(i.glow);
+    g.scale.set(7, 7, 1), g.position.set(0, 0, 0.6), c.add(g);
+  }
   return (
-    S.position.copy(c.position),
-    S.lookAt(e),
-    t.add(S),
+    c.lookAt(e),
+    t.add(c),
     {
       group: t,
-      spot: f,
-      beam: S,
+      spot: null,
+      beam: null,
     }
   );
 }
 
-export { beamMaterial, buildFloodlight };
+export { beamMaterial, buildFloodlight, glowTexture };

@@ -1,0 +1,26 @@
+{
+  "name": "lineup-orbit",
+  "notes": "Orbit freeze-frame over the lineup: opens on the lineup TV cut, time stops with the car upside down above the Semi while the camera leaves the TV position and orbits it, then time resumes in the game's slow motion.",
+  "size": [1920, 1080],
+  "fps": 30,
+  "duration": 3,
+  "blur": { "samples": 8, "shutter": 0.5 },
+  "take": "takes/lineup-flyover.json",
+  "in": "cut:lineup",
+  "time": [[0, 1], [0.35, 1], [0.65, 0, "inOut"], [1.85, 0], [2.25, 1, "inOut"]],
+  "cameras": [
+    { "rig": "fixed", "at": 0, "pos": [104, 1.4, -6], "frame": 18, "lookOffset": [0, 0.6, 0], "lookFollow": 0.08 },
+    {
+      "rig": "orbit",
+      "at": 0.45,
+      "blend": 0.7,
+      "angle": [[0.45, 285], [1.9, 205, "inOut"], [3, 185]],
+      "radius": [[0.45, 9], [1.9, 7.5], [3, 8.5]],
+      "height": [[0.45, 0.4], [1.9, 2.0], [3, 1.2]],
+      "offset": [0, 0.3, 0],
+      "lens": [[0.45, 30], [1.9, 26], [3, 28]],
+      "shake": { "amp": 0.05, "freq": 0.8 }
+    }
+  ],
+  "dof": { "focus": "car", "range": 2.5, "bokeh": 2.5 }
+}

@@ -1,0 +1,12 @@
+{
+  "name": "lineup-cut",
+  "notes": "First game shot of the 15 s promo (5.00 s): the game's lineup TV cut. Starts on the tick the car overflies the first lineup box; camera at lineup centre + (-6*dir, 1.4, 34) = (104, 1.4, -6) with the game's TV framing (18 m of frame height at the car, the game's 2*atan(9/d) lens); the car crosses Model 3, Model Y, Semi, Cybertruck and Cybercab left to right in the game's built-in slow motion. Frame 0 (--still 0) is the AI intro's last keyframe.",
+  "size": [1920, 1080],
+  "fps": 30,
+  "duration": 2,
+  "blur": { "samples": 8, "shutter": 0.5 },
+  "query": "tod=golden",
+  "take": "takes/lineup-flyover.json",
+  "in": "cut:lineup",
+  "camera": { "rig": "fixed", "pos": [104, 1.4, -6], "frame": 18, "lookOffset": [0, 0.6, 0], "lookFollow": 0.08 }
+}

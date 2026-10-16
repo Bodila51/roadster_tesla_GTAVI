@@ -1,4 +1,9 @@
 const qs = (a) => document.querySelector(a);
+const fmt = (n) => n.toLocaleString("en-US");
+const reducedMotion = () =>
+  typeof matchMedia === "function" &&
+  matchMedia("(prefers-reduced-motion: reduce)").matches;
+
 class Hud {
   constructor() {
     (this.el = {
@@ -25,13 +30,19 @@ class Hud {
       hints: qs("#hints"),
     }),
       (this._lastMode = ""),
-      (this._feedItems = []);
+      (this._feedItems = []),
+      (this._shownScore = null),
+      (this._scoreRaf = 0);
   }
   renderMissions(e, s) {
-    (this.el.missions.innerHTML = e
+    // open missions first (in game order), finished ones sink to the bottom;
+    // the next three open ones show their how-to line, the rest stay one row
+    const open = e.filter((t) => !s.has(t.id)),
+      next = new Set(open.slice(0, 3).map((t) => t.id));
+    (this.el.missions.innerHTML = [...open, ...e.filter((t) => s.has(t.id))]
       .map(
         (t) => `
-      <li class="${s.has(t.id) ? "done" : ""}">
+      <li class="${s.has(t.id) ? "done" : next.has(t.id) ? "next" : ""}">
         <span class="chk">${s.has(t.id) ? "✓" : ""}</span>
         <span class="mn">${t.name}</span>
         <span class="md">${t.desc}</span>
@@ -39,19 +50,42 @@ class Hud {
       )
       .join("")),
       (this.el.mcount.textContent = `${s.size}/${e.length}`);
+    const panel = this.el.missions.closest("#missions");
+    panel && panel.style.setProperty("--mp", e.length ? s.size / e.length : 0);
   }
   setScore(e, s) {
-    (this.el.score.textContent = e.toLocaleString("en-US")),
-      (this.el.best.textContent = s.toLocaleString("en-US")),
-      this.el.score.classList.remove("bump"),
+    this.el.best.textContent = fmt(s);
+    this._countTo(e);
+    this.el.score.classList.remove("bump"),
       this.el.score.offsetWidth,
       this.el.score.classList.add("bump");
+  }
+  // Ticks the score readout up to its new value (a broadcast-style count-up).
+  // The final value is always written, so the readout never ends stale.
+  _countTo(target) {
+    cancelAnimationFrame(this._scoreRaf);
+    const from = this._shownScore;
+    if (from === null || from === target || target < from || reducedMotion()) {
+      this._shownScore = target;
+      this.el.score.textContent = fmt(target);
+      return;
+    }
+    const t0 = performance.now(),
+      dur = Math.min(650, 250 + (target - from) / 40);
+    const step = (now) => {
+      const k = Math.min(1, (now - t0) / dur),
+        v = Math.round(from + (target - from) * (1 - Math.pow(1 - k, 3)));
+      this._shownScore = v;
+      this.el.score.textContent = fmt(v);
+      k < 1 && (this._scoreRaf = requestAnimationFrame(step));
+    };
+    this._scoreRaf = requestAnimationFrame(step);
   }
   trick(e, s, t) {
     const i = document.createElement("div");
     for (
       i.className = "trick",
-        i.innerHTML = `<span class="tn">${e}</span><span class="tp">+${s.toLocaleString("en-US")}</span>`,
+        i.innerHTML = `<span class="tn">${e}</span><span class="tp">+${fmt(s)}</span>`,
         this.el.feed.prepend(i),
         this._feedItems.push(i);
       this.el.feed.children.length > 4;
@@ -66,7 +100,7 @@ class Hud {
   banked(e, s) {
     const t = document.createElement("div");
     (t.className = "banked"),
-      (t.innerHTML = `<span>${s}</span><b>+${e.toLocaleString("en-US")}</b>`),
+      (t.innerHTML = `<span>${s}</span><b>+${fmt(e)}</b>`),
       this.el.feed.prepend(t),
       setTimeout(() => t.classList.add("out"), 1800),
       setTimeout(() => t.remove(), 2400),
@@ -97,7 +131,7 @@ class Hud {
   drift(e, s) {
     this.el.drift.classList.toggle("on", e > 0.3),
       (this.el.driftBar.style.width = `${Math.min(100, (e / 4) * 100)}%`),
-      (this.el.driftPts.textContent = s.toLocaleString("en-US"));
+      (this.el.driftPts.textContent = fmt(s));
   }
   telemetry(e) {
     this.el.speed.textContent = Math.round(e.mph);
@@ -122,9 +156,7 @@ class Hud {
           ? `ALT ${e.alt.toFixed(1)} m · AIR ${e.air.toFixed(1)} s`
           : ""),
       (this.el.pending.textContent =
-        e.pending > 0
-          ? `${Math.round(e.pending).toLocaleString("en-US")}`
-          : ""),
+        e.pending > 0 ? `${fmt(Math.round(e.pending))}` : ""),
       e.launchT !== null && e.launchT > 0.02
         ? ((this.el.launch.textContent = `${e.launchT.toFixed(2)} s`),
           this.el.launch.classList.add("on"))

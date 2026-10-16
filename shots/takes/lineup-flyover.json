@@ -1,0 +1,6 @@
+{
+  "notes": "From promo-plan's take-lineup.json: drive up the centre line, lift off on the jets about 35 m before the platform, barrel roll over the Semi, land past the row. autoSlowmo keeps the game's own slow motion over the lineup. At 1200 Hz on the preview build: launch 3.17 s, lineup TV cut 4.10 s, upside down over the Semi about 4.6 s.",
+  "start": "lineup",
+  "autoSlowmo": true,
+  "input": [[0.167, "KeyW"], [3.167, "Space"], [3.5, ""], [3.75, "KeyD"], [4.483, ""]]
+}

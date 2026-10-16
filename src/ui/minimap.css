@@ -1,0 +1,207 @@
+/* Radar: a round, heading-up map. Desktop: bottom-left (the key hints move up
+   above it). Phones: small, top-left under the button row, clear of the stick.
+   --rd-map-d lives on body so the HUD pieces it moves can read it. */
+body {
+  --rd-map-d: clamp(150px, 25vh, 228px);
+}
+body.touch {
+  --rd-map-d: 104px;
+}
+.rd-map {
+  position: fixed;
+  z-index: 6; /* above the touch layer's invisible stick zone, below menus */
+  left: var(--rd-el);
+  bottom: var(--rd-eb);
+  width: var(--rd-map-d);
+  height: var(--rd-map-d);
+  display: none;
+  cursor: pointer;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.rd-map.on {
+  display: block;
+  animation: rd-map-in 0.35s var(--rd-snap) backwards;
+}
+@keyframes rd-map-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+}
+.rd-map-c {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  clip-path: circle(50%); /* round hit area too */
+}
+.rd-map-dock {
+  position: absolute;
+  left: calc(100% + 8px);
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.rd-map.hide-goals {
+  display: none;
+}
+body.touch .rd-map {
+  top: calc(var(--rd-et) + 46px);
+  bottom: auto;
+}
+body.touch .rd-map-dock {
+  top: 0;
+  bottom: auto;
+}
+@media (orientation: portrait) and (max-width: 600px) {
+  body.touch {
+    --rd-map-d: 96px;
+  }
+  /* the toasts take the space right of the radar, so the ? goes under it */
+  body.touch .rd-map-dock {
+    left: 0;
+    top: calc(100% + 8px);
+  }
+}
+@media (max-height: 520px) and (orientation: landscape) {
+  body:not(.touch) {
+    --rd-map-d: 132px;
+  }
+}
+
+/* Desktop: the key hints sit above the radar, and the goals list ends above both. */
+body.rd-map-on:not(.touch) #hints {
+  bottom: calc(var(--edge-b, 20px) + var(--rd-map-d) + 12px);
+}
+body.rd-map-on:not(.touch) #hud {
+  --hints-h: calc(132px + var(--rd-map-d) + 12px);
+}
+@media (max-width: 1040px) {
+  body.rd-map-on:not(.touch) #hud {
+    --hints-h: calc(var(--rd-map-d) + 16px);
+  }
+}
+/* Phone portrait: toasts start right of the radar instead of across it. */
+@media (orientation: portrait) and (max-width: 600px) {
+  body.touch.rd-map-on #toasts {
+    left: calc(var(--edge-l, 12px) + var(--rd-map-d) + 10px);
+    right: var(--edge-r, 12px);
+    width: auto;
+    max-width: none;
+    transform: none;
+    align-items: flex-end;
+  }
+}
+
+/* On-screen arrow to the target: an orange pointer plus a name and distance chip */
+.rd-wp {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 4;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.25s;
+}
+.rd-wp.on {
+  opacity: 1;
+}
+.rd-wp-ico {
+  position: absolute;
+  left: -13px;
+  top: -13px;
+  width: 26px;
+  height: 26px;
+}
+.rd-wp-ico::before,
+.rd-wp-ico::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  clip-path: polygon(8% 4%, 100% 50%, 8% 96%, 34% 50%);
+}
+.rd-wp-ico::before {
+  background: var(--rd-ink);
+  transform: scale(1.32);
+}
+.rd-wp-ico::after {
+  background: var(--rd-accent);
+}
+.rd-wp-lbl {
+  position: absolute;
+  display: flex;
+  align-items: stretch;
+  white-space: nowrap;
+}
+.rd-wp-name {
+  padding: 5px 8px 4px 9px;
+  font: 800 var(--fs-label, 10.5px) / 1 var(--rd-font);
+  letter-spacing: var(--rd-track);
+  color: var(--rd-fg);
+  background: var(--rd-plate-hi);
+}
+.rd-wp-dist {
+  display: flex;
+  align-items: center;
+  padding: 0 7px 0 7px;
+  font: 800 12px/1 var(--rd-font);
+  font-stretch: var(--rd-stretch);
+  font-variant-numeric: tabular-nums;
+  color: var(--rd-on-accent);
+  background: var(--rd-accent);
+}
+.rd-wp[data-side="t"] .rd-wp-lbl {
+  left: 0;
+  bottom: 20px;
+  transform: translateX(-50%);
+}
+.rd-wp[data-side="b"] .rd-wp-lbl {
+  left: 0;
+  top: 20px;
+  transform: translateX(-50%);
+}
+.rd-wp[data-side="l"] .rd-wp-lbl {
+  right: 22px;
+  top: 0;
+  transform: translateY(-50%);
+}
+.rd-wp[data-side="r"] .rd-wp-lbl {
+  left: 22px;
+  top: 0;
+  transform: translateY(-50%);
+}
+.rd-wp.new .rd-wp-lbl,
+.rd-wp.new .rd-wp-ico {
+  animation: rd-wp-pop 0.4s var(--rd-snap);
+}
+@keyframes rd-wp-pop {
+  0% {
+    opacity: 0;
+    scale: 1.35;
+  }
+}
+body.touch .rd-wp-name {
+  font-size: 9.5px;
+  padding: 4px 7px 3px 8px;
+}
+body.touch .rd-wp-dist {
+  font-size: 11px;
+}
+/* hidden while the replay runs */
+body.rd-replay .rd-map,
+body.rd-replay .rd-wp {
+  display: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .rd-map.on,
+  .rd-wp.new .rd-wp-lbl,
+  .rd-wp.new .rd-wp-ico {
+    animation: none;
+  }
+}

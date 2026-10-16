@@ -1,0 +1,27 @@
+{
+  "notes": "Keyframe 4 for the promo: lineup flyover without the barrel roll, landing past the Cybercab end.",
+  "start": "lineup",
+  "autoSlowmo": false,
+  "input": [
+    [
+      0.167,
+      "KeyW"
+    ],
+    [
+      3.167,
+      "Space"
+    ],
+    [
+      3.5,
+      ""
+    ],
+    [
+      5.45,
+      "Space"
+    ],
+    [
+      5.75,
+      ""
+    ]
+  ]
+}

@@ -13,7 +13,7 @@ import {
   ShapeGeometry,
   Vector3,
 } from "three";
-import { makeConcreteTextures } from "./concrete-texture.js";
+import { makeConcreteTextures, makeWallTexture } from "./concrete-texture.js";
 import { ProfileRamp } from "./ramp.js";
 
 const It = 7.5,
@@ -29,6 +29,23 @@ function ai(a) {
         : a < Qt + It * Math.PI + ge
           ? 1 / It
           : 0;
+}
+// box UVs in metres per face (px, nx, py, ny, pz, nz) so a wall texture keeps its scale
+function boxUvMeters(a, e, s, t) {
+  const i = a.attributes.uv,
+    o = [
+      [t, s],
+      [t, s],
+      [e, t],
+      [e, t],
+      [e, s],
+      [e, s],
+    ];
+  for (let n = 0; n < i.count; n++) {
+    const c = o[Math.floor(n / 4)];
+    i.setXY(n, i.getX(n) * c[0], i.getY(n) * c[1]);
+  }
+  return a;
 }
 class Halfpipe extends ProfileRamp {
   constructor({ center: e, along: s = new Vector3(1, 0, 0), length: t = 64 }) {
@@ -61,13 +78,13 @@ class Halfpipe extends ProfileRamp {
   }
   buildPipe() {
     const e = this.group,
-      s = makeConcreteTextures(this.L, this.width),
+      s = makeConcreteTextures(this.L, this.width, 0.35),
       t = new MeshStandardMaterial({
         map: s.map,
         roughnessMap: s.rough,
         bumpMap: s.bump,
-        bumpScale: 1,
-        color: 13224131,
+        bumpScale: 0.8,
+        color: 15263459,
         roughness: 1,
         side: DoubleSide,
       });
@@ -130,15 +147,18 @@ class Halfpipe extends ProfileRamp {
       const z = new Mesh(
         T,
         new MeshStandardMaterial({
-          color: 6118489,
+          color: 9079947,
           roughness: 0.95,
           side: DoubleSide,
         }),
       );
       e.add(z);
     }
+    const wt = makeWallTexture().clone();
+    wt.repeat.set(1 / 4.8, 1 / 4.8);
     const y = new MeshStandardMaterial({
-        color: 9342345,
+        map: wt,
+        color: 15790320,
         roughness: 0.9,
       }),
       b = 3.5;
@@ -165,15 +185,18 @@ class Halfpipe extends ProfileRamp {
         e.add(h);
     }
     this.deckBoxes = [];
+    const bw = makeWallTexture().clone();
+    bw.repeat.set(1 / 4.8, 1 / 4.8);
     const L = new MeshStandardMaterial({
-      color: 7171177,
-      roughness: 0.85,
-      metalness: 0.2,
+      map: bw,
+      color: 14737632,
+      roughness: 0.9,
+      metalness: 0,
     });
     for (const v of [!1, !0]) {
       const x = v ? this.pipeWidth + b / 2 : -b / 2,
         h = this.origin.clone().setY(0).addScaledVector(this.f, x),
-        u = new Mesh(new BoxGeometry(b, this.H, this.width), L);
+        u = new Mesh(boxUvMeters(new BoxGeometry(b, this.H, this.width), b, this.H, this.width), L);
       u.position.copy(h).setY(this.H / 2),
         u.quaternion.setFromRotationMatrix(
           new Matrix4().makeBasis(this.f, new Vector3(0, 1, 0), this.r),
@@ -207,7 +230,7 @@ class Halfpipe extends ProfileRamp {
           new MeshStandardMaterial({
             color: 2228224,
             emissive: 16717872,
-            emissiveIntensity: 5,
+            emissiveIntensity: 3,
           }),
         ),
         R = this.point(v ? this.L - 0.25 : 0.25, 0).addScaledVector(
@@ -225,7 +248,7 @@ class Halfpipe extends ProfileRamp {
       new MeshStandardMaterial({
         color: 6176,
         emissive: 5953791,
-        emissiveIntensity: 3,
+        emissiveIntensity: 2,
       }),
     );
     m.position.copy(this.point((this.flatS0 + this.flatS1) / 2, 0)).setY(0.04),

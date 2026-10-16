@@ -1,0 +1,232 @@
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>audio render harness</title></head>
+<body>
+<div id="menu" class="hidden"></div>
+<script type="module">
+// Offline render harness: runs the real AudioEngine inside an OfflineAudioContext and drives it with
+// scripted game states and events at 60 fps, the way main.js and game-state.js call it.
+import { AudioEngine } from '../audio.js';
+
+AudioEngine.baseUrl = '/public/sounds/';
+const FPS = 60;
+
+// Same longitudinal model as src/physics/car-physics.js (ground), good enough to drive the sound.
+function stepV(v, thr, boost, dt) {
+  let a = 0;
+  if (thr > 0) a += thr * Math.min(17, 340 / Math.max(0.5, v));
+  if (thr < 0) a += v > 0.5 ? -16 * Math.min(1, -thr * 2) : 0;
+  if (boost) a += 6.5 + 19.5 * Math.max(0, 1 - v / 40);
+  a -= 0.25 + 9e-4 * v * v;
+  return Math.max(0, v + a * dt);
+}
+
+const base = () => ({ speed: 0, throttle: 0, boost: 0, lift: 0, rcs: 0, suction: 0, drifting: 0, onGround: true, timeScale: 1 });
+
+// Each scenario: dur (s), state(t, prev) -> state, events: [[t, name, x]], calls: [[t, fn(eng)]]
+const S = {
+  drive: {
+    dur: 14,
+    state(t, p) {
+      const s = base();
+      s.throttle = t < 1.5 ? 0 : t < 8.5 ? 1 : t < 10 ? 0 : t < 13 ? -0.5 : 0;
+      s.speed = stepV(p.speed || 0, s.throttle, 0, 1 / FPS);
+      return s;
+    },
+    events: [],
+  },
+  topspeed: {
+    dur: 10,
+    state(t, p) {
+      const s = base();
+      s.throttle = t < 8 ? 1 : 0;
+      s.boost = t > 1 && t < 6 ? 1 : 0;
+      s.speed = t === 0 ? 55 : Math.min(103, stepV(p.speed, s.throttle, s.boost, 1 / FPS) + (t < 8 ? 0.12 : 0));
+      return s;
+    },
+    events: [],
+  },
+  drift: {
+    dur: 9,
+    state(t, p) {
+      const s = base();
+      if (t < 6) {
+        s.throttle = 1;
+        s.speed = 22 - 3 * Math.min(1, Math.max(0, t - 1) / 3);
+        s.drifting = t < 1 ? 0 : t < 1.4 ? (t - 1) * 2 : t < 5 ? 0.8 + 0.15 * Math.sin(t * 3) : 0;
+      } else {
+        s.throttle = t < 8.5 ? 0.5 : 0; // burnout (W+S)
+        s.speed = 0.6;
+        s.drifting = t < 8.5 ? Math.min(1, (t - 6) * 3) : 0;
+      }
+      return s;
+    },
+    events: [],
+  },
+  jump: {
+    dur: 10,
+    state(t) {
+      const s = base();
+      s.speed = 20;
+      if (t < 1.0) { s.throttle = 1; return s; }
+      if (t < 4.6) {
+        s.onGround = false;
+        s.lift = t < 3.0 ? 1 : 0;
+        s.rcs = t > 2.0 && t < 3.6 ? 1 : t >= 3.6 ? 0.5 : 0;
+        s.throttle = t > 2.2 && t < 2.8 ? 1 : 0;
+        return s;
+      }
+      if (t < 6.0) { s.throttle = 1; return s; }
+      if (t < 7.6) { s.onGround = false; s.lift = t < 6.2 ? 1 : 0; s.speed = 26; return s; }
+      s.speed = 24;
+      s.throttle = 0.4;
+      return s;
+    },
+    events: [[1.0, 'launchPop', 1], [2.6, 'trick', 1], [3.3, 'trick', 2], [4.6, 'land', 0.7], [4.6, 'trick', 3],
+      [6.0, 'launchPop', 1], [7.6, 'hardLand', 0.95], [7.6, 'trick', 1]],
+  },
+  rear: {
+    dur: 7,
+    state(t) {
+      const s = base();
+      s.speed = 25 + 8 * Math.min(1, Math.max(0, t - 0.5) / 2.5);
+      s.throttle = 1;
+      s.boost = t > 0.5 && t < 3.0 ? 1 : 0;
+      if (t > 3.6 && t < 6.0) { s.onGround = false; s.lift = 1; s.boost = t > 4.2 && t < 5.4 ? 1 : 0; s.throttle = 0; s.rcs = 0.5; }
+      return s;
+    },
+    events: [[3.6, 'launchPop', 1], [6.0, 'land', 0.6]],
+  },
+  wall: {
+    dur: 9,
+    state(t) {
+      const s = base();
+      s.speed = t < 1 ? 22 : t < 4 ? 22 - 4 * (t - 1) / 3 : 16;
+      s.throttle = t < 4 ? 1 : 0;
+      if (t >= 1 && t < 4) s.suction = 1;
+      if (t >= 4 && t < 6.5) { s.onGround = false; s.rcs = 0.5; }
+      s.timeScale = t >= 4 && t < 5.1 ? 0.3 : 1;
+      return s;
+    },
+    events: [[2.5, 'trick', 1], [2.5, 'missionComplete', 1], [4.0, 'trick', 2], [6.5, 'land', 0.8]],
+  },
+  crash: {
+    dur: 8,
+    state(t) {
+      const s = base();
+      s.speed = t < 1 ? 30 : t < 2.35 ? 16 * Math.exp(-(t - 1) * 2) : t < 3.15 ? 1 : 12;
+      s.throttle = t < 1 || t > 3.3 ? 1 : 0;
+      if (t >= 1 && t < 3.15) {
+        s.onGround = false;
+        if (t >= 2.35) { s.lift = 0.6; s.rcs = 1; }
+      }
+      return s;
+    },
+    events: [[1.0, 'crash', 0.9], [1.3, 'scrape', 1], [1.7, 'scrape', 1], [2.35, 'launchPop', 0.5],
+      [5.0, 'scrape', 0.4], [6.0, 'crash', 0.7]],
+  },
+  score: {
+    dur: 12,
+    state(t) {
+      const s = base();
+      s.speed = 18;
+      s.onGround = !(t > 1.8 && t < 5.2);
+      return s;
+    },
+    events: [[0.2, 'uiConfirm', 1], [1.0, 'ui', 1], [1.25, 'ui', 1], [2.0, 'trick', 1], [2.6, 'trick', 2],
+      [3.2, 'trick', 3], [3.8, 'trick', 4], [4.4, 'trick', 5], [5.2, 'land', 0.5], [5.2, 'trick', 5],
+      [6.5, 'ring', 1], [6.5, 'trick', 1], [7.6, 'ring', 1], [7.6, 'trick', 2], [9.0, 'trick', 1],
+      [9.0, 'missionComplete', 1], [11.0, 'whoosh', 1]],
+  },
+  hover: {
+    dur: 6,
+    state(t) {
+      const s = base();
+      s.speed = 60;
+      s.onGround = false;
+      s.lift = t > 0.3 && t < 5 ? 1 : 0;
+      s.boost = t > 1.0 && t < 4.5 ? 1 : 0;
+      s.rcs = t > 1.5 && t < 4 ? 1 : 0.5;
+      return s;
+    },
+    events: [[0.3, 'launchPop', 1], [5.2, 'hardLand', 1], [5.2, 'trick', 4]],
+  },
+  pause: {
+    dur: 5,
+    state(t) {
+      const s = base();
+      s.speed = 30;
+      s.throttle = 1;
+      return s;
+    },
+    events: [],
+    calls: [
+      [1.0, (e) => { document.getElementById('menu').classList.remove('hidden'); e.setMuted(true); }],
+      [1.6, (e) => e.event('ui', 1)], [2.0, (e) => e.setMasterVolume(0.5)], [2.1, (e) => e.setMasterVolume(0.7)],
+      [2.8, (e) => { document.getElementById('menu').classList.add('hidden'); e.setMuted(false); }],
+      [3.6, (e) => e.setMuted(true)], [4.2, (e) => e.setMuted(false)],
+    ],
+  },
+};
+
+window.SCENARIOS = Object.keys(S);
+// opts.raw: bypass the master dynamics (the mix bus straight to the output, unity gain).
+// opts.solo: keep only these groups: motor tyre wind thrust fan amb (loop buses), sfx, ui, space (outdoor returns).
+window.run = async function (name, sr = 48000, opts = {}) {
+  const sc = S[name];
+  const ctx = new OfflineAudioContext(2, Math.ceil(sc.dur * sr), sr);
+  const eng = new AudioEngine();
+  eng.init({ context: ctx });
+  await eng.whenLoaded();
+  if (opts.raw) {
+    eng.m.mix.disconnect();
+    eng.m.mix.connect(ctx.destination);
+  }
+  if (opts.solo && opts.solo.length) {
+    const keep = new Set(opts.solo);
+    for (const k of Object.keys(eng.bus)) if (!keep.has(k)) eng.bus[k].gain.value = 0;
+    if (!keep.has('sfx')) eng.m.sfx.gain.value = 0;
+    if (!keep.has('ui')) eng.m.ui.gain.value = 0;
+    if (!keep.has('space')) { eng.m.slap.gain.value = 0; eng.m.earlyOut.gain.value = 0; }
+  }
+  let prev = base();
+  const evs = (sc.events || []).slice().sort((a, b) => a[0] - b[0]);
+  const calls = (sc.calls || []).slice();
+  let ei = 0;
+  const trace = [];
+  const frames = Math.floor(sc.dur * FPS);
+  for (let k = 1; k < frames; k++) {
+    const t = k / FPS;
+    ctx.suspend(t).then(async () => {
+      while (ei < evs.length && evs[ei][0] <= t + 1e-6) { const [, n, x] = evs[ei++]; eng.event(n, x); }
+      for (const c of calls) if (!c.done && c[0] <= t + 1e-6) { c.done = true; c[1](eng); }
+      const s = sc.state(t, prev);
+      prev = s;
+      eng.update(1 / FPS, s);
+      await null; await null;
+      if (k % 6 === 0) {
+        const red = (n) => (typeof n.reduction === 'number' ? n.reduction : n.reduction.value);
+        trace.push([t, red(eng.m.comp), red(eng.m.lim), eng.activeVoices]);
+      }
+      ctx.resume();
+    });
+  }
+  const buf = await ctx.startRendering();
+  const L = buf.getChannelData(0), R = buf.getChannelData(1);
+  let pk = 0;
+  const pcm = new Float32Array(L.length * 2); // float: nothing is clipped by the file format
+  for (let i = 0; i < L.length; i++) {
+    const a = L[i], b = R[i];
+    pk = Math.max(pk, Math.abs(a), Math.abs(b));
+    pcm[2 * i] = a;
+    pcm[2 * i + 1] = b;
+  }
+  const bytes = new Uint8Array(pcm.buffer);
+  let bin = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+  return { sr, peak: pk, b64: btoa(bin), trace, events: evs.map((e) => ({ t: e[0], label: e[1] + (e[2] !== 1 ? ' ' + e[2] : '') })) };
+};
+window.harnessReady = true;
+</script>
+</body>
+</html>

@@ -4,9 +4,9 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="theme-color" content="#05070a" />
+  <meta name="theme-color" content="#0b0e13" />
   <title>Roadster — Unleashed</title>
-  <meta name="description" content="Drive, fly and kickflip the new 2026 Tesla Roadster in your browser: the reveal wall, the lineup jump, a halfpipe and cold-gas thrusters. A fan-made playground by @snicklink." />
+  <meta name="description" content="Drive, fly and kickflip the new 2026 Tesla Roadster in your browser: the reveal wall, the lineup jump, a halfpipe and cold-gas thrusters. A fan-made playground by @0xCodila." />
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://roadster-unleashed.vercel.app/" />
@@ -16,36 +16,35 @@
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:site" content="@snicklink" />
-  <meta name="twitter:creator" content="@snicklink" />
+  <meta name="twitter:site" content="@0xCodila" />
+  <meta name="twitter:creator" content="@0xCodila" />
   <meta name="twitter:title" content="Roadster — Unleashed" />
   <meta name="twitter:description" content="Drive up the reveal wall, flip off it upside down, kickflip over the Semi. The new Tesla Roadster as a browser game." />
   <meta name="twitter:image" content="https://roadster-unleashed.vercel.app/og.jpg?v=2" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Michroma&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..100,400..800&family=Big+Shoulders+Display:wght@800;900&display=swap" rel="stylesheet" />
 </head>
 <body>
   <canvas id="gl"></canvas>
 
-  <!-- ── HUD ───────────────────────────────────────────── -->
+  <!-- HUD -->
   <div id="hud" class="hidden">
     <div id="missions" class="panel">
       <div class="ph"><span>MISSIONS</span><span id="missions-count">0/14</span></div>
+      <div class="m-prog"><i></i></div>
       <ul id="missions-list"></ul>
-      <div class="pfoot">TAB to hide</div>
+      <div class="pfoot"><b>TAB</b> hide / show</div>
     </div>
 
     <div id="scorebox" class="panel">
-      <div class="lbl">SCORE</div>
+      <div class="sb-top"><span class="lbl">SCORE</span><span class="lbl sm">BEST <span id="best-val">0</span></span></div>
       <div id="score-val">0</div>
-      <div class="lbl sm">BEST <span id="best-val">0</span></div>
     </div>
 
     <div id="center">
-      <div id="mult">×1.0</div>
-      <div id="pending"></div>
+      <div class="combo"><div id="mult">×1.0</div><div id="pending"></div></div>
       <div id="trick-feed"></div>
     </div>
 
@@ -61,14 +60,20 @@
 
     <div id="dash">
       <div id="alt"></div>
-      <div id="spd"><span id="spd-val">0</span><span class="unit">MPH</span></div>
-      <div id="spd-mode" data-mode="ground">ROAD</div>
-      <div id="gasrow">
-        <span id="ind-lift" class="ind">LIFT</span>
-        <div id="gas"><div id="gas-fill"></div><div class="ticks"></div></div>
-        <span id="ind-boost" class="ind">THRUST</span>
+      <div class="dash-plate">
+        <div id="spd"><span id="spd-val">0</span><span class="unit">MPH</span></div>
+        <div class="dash-air">
+          <div class="dash-row">
+            <div id="spd-mode" data-mode="ground">ROAD</div>
+            <div class="gaslbl">COLD GAS · 600 L COPV</div>
+          </div>
+          <div id="gasrow">
+            <span id="ind-lift" class="ind">LIFT</span>
+            <div id="gas"><div id="gas-fill"></div><div class="ticks"></div></div>
+            <span id="ind-boost" class="ind">THRUST</span>
+          </div>
+        </div>
       </div>
-      <div class="gaslbl">COLD GAS · 600 L COPV</div>
     </div>
 
     <div id="hints" data-mode="ground">
@@ -79,55 +84,77 @@
     </div>
   </div>
 
-  <!-- ── Title ─────────────────────────────────────────── -->
+  <!-- Title -->
   <div id="title">
-    <div class="t-top">FAN-MADE PLAYGROUND · INSPIRED BY THE OCT 15 2026 REVEAL</div>
-    <h1 class="wordmark">ROADSTER</h1>
-    <div class="t-sub">UNLEASHED</div>
-    <div class="t-specs">
-      <div><b>0–60</b><span>&lt;0.9 s</span></div>
-      <div><b>V-MAX</b><span>230 mph</span></div>
-      <div><b>THRUSTERS</b><span>10 × cold gas</span></div>
-      <div><b>SUCTION</b><span>multi-mode fans</span></div>
+    <div class="t-head">
+      <div class="t-kicker">FAN-MADE PLAYGROUND · INSPIRED BY THE OCT 15, 2026 REVEAL</div>
+      <div class="t-lockup">
+        <h1 class="wordmark">ROADSTER</h1>
+        <div class="t-sub">UNLEASHED</div>
+      </div>
+      <div class="t-specs">
+        <div><b>0–60</b><span>&lt;0.9 s</span></div>
+        <div><b>TOP SPEED</b><span>230 mph</span></div>
+        <div><b>THRUSTERS</b><span>10 × cold gas</span></div>
+        <div><b>SUCTION</b><span>multi-mode fans</span></div>
+      </div>
     </div>
-    <button id="start">DRIVE</button>
-    <div class="t-keys">
-      <div><b>W A S D</b> drive / steer</div>
-      <div><b>SPACE</b> thrusters up — jump & hover</div>
-      <div><b>SHIFT</b> rear thrust</div>
-      <div><b>A / D in air</b> kickflip</div>
-      <div><b>W / S in air</b> front / back flip</div>
-      <div><b>Q</b> drift · <b>C</b> camera · <b>T</b> teleport</div>
+    <div class="t-act">
+      <div class="t-keys">
+        <div class="tk-h">CONTROLS</div>
+        <div><b>W A S D</b><span>drive · steer</span></div>
+        <div><b>SPACE</b><span>thrusters up · jump &amp; hover</span></div>
+        <div><b>SHIFT</b><span>rear thrust</span></div>
+        <div><b>A / D</b><span>in the air: kickflip</span></div>
+        <div><b>W / S</b><span>in the air: front / back flip</span></div>
+        <div><b>Q</b><span>drift</span><b>C</b><span>camera</span><b>T</b><span>teleport</span></div>
+      </div>
+      <div class="t-cta">
+        <!-- 2-MIN RUN slot: unhide and wire to startRun(); #start then reads FREE ROAM -->
+        <button id="start-run" class="cta cta-run" type="button" hidden><span class="s-lbl">2-MIN RUN</span></button>
+        <button id="start" class="cta" type="button"><span class="s-lbl"><span class="s-play">PLAY</span><span class="s-roam">FREE ROAM</span></span><span class="s-key">ENTER</span></button>
+      </div>
     </div>
-    <div class="t-foot">Gamepad supported · Best with sound on · <a href="./viewer.html" id="viewer-link">3D VIEWER</a></div>
+    <div class="t-foot"><span class="tf-legal">Fan-made · not affiliated with Tesla</span><span class="tf-pad">Gamepad supported · best with sound on</span><a href="./viewer.html" id="viewer-link">3D VIEWER</a></div>
   </div>
 
-  <!-- ── Pause / menu ──────────────────────────────────── -->
+  <!-- Pause / menu -->
   <div id="menu" class="hidden">
     <div class="m-box panel">
-      <div class="m-title">PAUSED</div>
-      <button data-act="resume">Resume</button>
-      <div class="m-row"><span>Teleport</span>
+      <div class="m-side">
+        <div class="m-title">PAUSED</div>
+        <button data-act="resume" class="m-primary">Resume</button>
+        <!-- mode slot: unhide when startRun() / startFreeRoam() exist -->
+        <div class="m-modes">
+          <button id="menu-run" data-act="run" class="m-mode m-mode-run" hidden>2-Min Run</button>
+          <button id="menu-roam" data-act="roam" class="m-mode" hidden>Free Roam</button>
+        </div>
+        <div class="m-esc"><b>ESC</b> to resume</div>
+        <button data-act="reset-progress" class="ghost">Reset mission progress</button>
+      </div>
+      <div class="m-main">
+        <div class="m-sec">Teleport</div>
         <div class="m-btns">
-          <button data-tp="spawn">Start</button><button data-tp="ramp">Wall</button><button data-tp="lineup">Lineup</button><button data-tp="runway">Runway</button><button data-tp="donut">Donut</button><button data-tp="halfpipe">Halfpipe</button><button data-tp="loop">Loop</button><button data-tp="massdriver">Mass Driver</button>
+          <button data-tp="spawn">Start</button><button data-tp="ramp">Wall</button><button data-tp="lineup">Lineup</button><button data-tp="runway">Runway</button><button data-tp="donut">Donut</button><button data-tp="halfpipe">Halfpipe</button><button data-tp="loop">Loop</button><button data-tp="massdriver">Mass Driver</button><button data-tp="city">City</button>
+        </div>
+        <div class="m-sec">Settings</div>
+        <div class="m-set">
+          <label class="m-row"><span>Auto slow-motion</span><input type="checkbox" id="opt-slowmo" checked /></label>
+          <label class="m-row"><span>Auto camera cuts</span><input type="checkbox" id="opt-cuts" checked /></label>
+          <label class="m-row"><span>Volume</span><input type="range" id="opt-vol" min="0" max="1" step="0.05" value="0.7" /></label>
+          <label class="m-row"><span>Quality</span>
+            <select id="opt-quality"><option value="high">High</option><option value="ultra">Ultra</option><option value="medium">Medium</option></select>
+          </label>
         </div>
       </div>
-      <label class="m-row"><span>Auto slow-motion</span><input type="checkbox" id="opt-slowmo" checked /></label>
-      <label class="m-row"><span>Auto camera cuts</span><input type="checkbox" id="opt-cuts" checked /></label>
-      <label class="m-row"><span>Volume</span><input type="range" id="opt-vol" min="0" max="1" step="0.05" value="0.7" /></label>
-      <label class="m-row"><span>Quality</span>
-        <select id="opt-quality"><option value="high">High</option><option value="ultra">Ultra</option><option value="medium">Medium</option></select>
-      </label>
-      <button data-act="reset-progress" class="ghost">Reset mission progress</button>
     </div>
   </div>
 
-  <div id="rotate"><div class="ph-icon"></div><div>ROTATE TO LANDSCAPE</div></div>
   <div id="dev">
-    <a href="https://x.com/snicklink" target="_blank" rel="noopener" title="@snicklink on X"><img src="/snicklink-logo-sm.png" alt="@snicklink" width="78" height="55" /></a>
-    <a class="more" href="https://snicklink.de/" target="_blank" rel="noopener">More stuff</a>
+    <a href="https://x.com/0xCodila" target="_blank" rel="noopener" title="@0xCodila on X"><img src="/0xcodila-badge.png" alt="@0xCodila" width="78" height="55" /></a>
+    <a class="more" href="https://x.com/intent/follow?screen_name=0xCodila" target="_blank" rel="noopener">Follow</a>
   </div>
-  <div id="fade"></div>
+  <div id="fade"><div class="fade-mark">ROADSTER</div><div class="fade-bar"></div></div>
   <script type="module" src="/src/main.js"></script>
 </body>
 </html>

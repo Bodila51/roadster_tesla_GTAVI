@@ -59,31 +59,39 @@ function footprintToBox(a, e, s, t, i, o) {
     name: "structure",
   };
 }
+// Gantry sign for daylight: a dark LED panel with bright lettering (reads in sun, no neon halo)
 function makeNeonSign(a, e) {
   const s = document.createElement("canvas");
   (s.width = 1024), (s.height = 160);
   const t = s.getContext("2d");
-  (t.font = 'italic 400 104px Michroma, "Arial Black", sans-serif'),
+  (t.fillStyle = "#16181b"),
+    t.beginPath(),
+    t.roundRect ? t.roundRect(4, 6, 1016, 148, 14) : t.rect(4, 6, 1016, 148),
+    t.fill(),
+    (t.strokeStyle = "#3a3d42"),
+    (t.lineWidth = 5),
+    t.stroke(),
+    (t.font = 'italic 400 96px Michroma, "Arial Black", sans-serif'),
     (t.textAlign = "center"),
     (t.textBaseline = "middle"),
     (t.shadowColor = e),
-    (t.shadowBlur = 28),
+    (t.shadowBlur = 10),
     (t.fillStyle = e),
     t.fillText(a, 512, 84),
     (t.shadowBlur = 0),
+    (t.globalAlpha = 0.35),
     (t.fillStyle = "#ffffff"),
-    (t.globalAlpha = 0.85),
     t.fillText(a, 512, 84);
   const i = new CanvasTexture(s);
   return (
     (i.colorSpace = SRGBColorSpace),
+    (i.anisotropy = 4),
     new Mesh(
       new PlaneGeometry(9, 1.4),
       new MeshBasicMaterial({
         map: i,
-        transparent: !0,
-        color: new Color(1.8, 1.8, 1.8),
-        depthWrite: !1,
+        alphaTest: 0.5,
+        color: new Color(1.35, 1.35, 1.35),
         side: DoubleSide,
       }),
     )

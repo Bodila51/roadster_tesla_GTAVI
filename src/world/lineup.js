@@ -10,7 +10,7 @@ import { buildSemi } from "../vehicles/semi.js";
 function buildLineup() {
   const a = vehicleMaterials(),
     e = new Group();
-  e.name = "lineup";
+  (e.name = "lineup"), (e.userData.staticShadow = !0);
   const s = 0.12,
     t = 0.9,
     i = [
